@@ -478,3 +478,19 @@ it('validates reserved parameters', () => {
     })
   ).not.toThrow();
 });
+
+it('validates oisFormat field', () => {
+  const invalidOis = loadOisFixture();
+  invalidOis.oisFormat = '0.2.3';
+
+  expect(() => oisSchema.parse(invalidOis)).toThrow(
+    new ZodError([
+      {
+        code: 'invalid_literal',
+        expected: '1.0.0',
+        path: ['oisFormat'],
+        message: 'Invalid literal value, expected "1.0.0"',
+      },
+    ])
+  );
+});

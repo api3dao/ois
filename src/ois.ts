@@ -5,6 +5,7 @@ import groupBy from 'lodash/groupBy';
 import find from 'lodash/find';
 import { SuperRefinement, z } from 'zod';
 import { SchemaType } from './types';
+import { version as packageVersion } from '../package.json';
 
 function removeBraces(value: string) {
   return trimEnd(trimStart(value, '{'), '}');
@@ -427,7 +428,7 @@ export const semverSchema = z.string().refine((value) => {
 
 export const oisSchema = z
   .object({
-    oisFormat: semverSchema,
+    oisFormat: z.literal(packageVersion),
     // Limit the title to 64 characters
     title: z.string().regex(/^[a-zA-Z0-9-_\s]{1,64}$/),
     version: semverSchema,

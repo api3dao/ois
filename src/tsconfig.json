@@ -3,9 +3,9 @@
   "compilerOptions": {
     "composite": true,
 
-    "rootDir": "./",
+    "rootDir": "../",
     "outDir": "../dist"
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../package.json"],
   "exclude": ["./**/*.test.ts"]
 }
