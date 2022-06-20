@@ -15,10 +15,16 @@
     "lint:prettier:fix": "yarn prettier --write \"./**/*.{js,ts,md,yml}\"",
     "lint:prettier": "yarn prettier --check \"./**/*.{js,ts,md,yml}\"",
     "lint:tsc": "yarn compile",
-    "lint": "yarn lint:prettier && yarn lint:tsc"
+    "lint": "yarn lint:prettier && yarn lint:tsc",
+    "test:watch": "jest --watch",
+    "test": "jest"
   },
   "devDependencies": {
+    "@types/jest": "^28.1.2",
+    "jest": "^28.1.1",
     "prettier": "^2.7.1",
+    "ts-jest": "^28.0.5",
+    "ts-node": "^10.8.1",
     "typescript": "^4.2.4"
   },
   "dependencies": {}
