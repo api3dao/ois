@@ -16,11 +16,13 @@
     "lint:prettier": "yarn prettier --check \"./**/*.{js,ts,md,yml}\"",
     "lint:tsc": "yarn compile",
     "lint": "yarn lint:prettier && yarn lint:tsc",
+    "prepare": "husky install",
     "test:watch": "jest --watch",
     "test": "jest"
   },
   "devDependencies": {
     "@types/jest": "^28.1.2",
+    "husky": "^8.0.1",
     "jest": "^28.1.1",
     "prettier": "^2.7.1",
     "ts-jest": "^28.0.5",
