@@ -1,4 +1,4 @@
-# `@api3/airnode-ois`
+# `@api3/ois`
 
 > OIS (or Oracle Integration Specifications) is a JSON object that describes an API specification
 
