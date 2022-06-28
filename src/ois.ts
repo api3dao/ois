@@ -120,6 +120,7 @@ export const RELAY_METADATA_TYPES = [
   'relayRequesterAddress',
   'relaySponsorAddress',
   'relaySponsorWalletAddress',
+  'relayRequestId',
 ] as const;
 
 export const apiSecuritySchemeSchema = z.discriminatedUnion('type', [
