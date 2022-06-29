@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true,
+
+    // Some rules are too restrictive for test files and make mocking more complex
+    "noUncheckedIndexedAccess": false,
+    "noPropertyAccessFromIndexSignature": false
+  },
+  "references": [{ "path": "../src" }],
+  "include": ["./**/*.ts"]
+}

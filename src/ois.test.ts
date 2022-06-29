@@ -11,6 +11,7 @@ import {
   semverSchema,
   reservedParameterSchema,
 } from './ois';
+import { version as packageVersion } from '../package.json';
 
 const loadOisFixture = (): OIS =>
   // This OIS is guaranteed to be valid because there is a test for it's validity below
@@ -487,9 +488,9 @@ it('validates oisFormat field', () => {
     new ZodError([
       {
         code: 'invalid_literal',
-        expected: '1.0.0',
+        expected: packageVersion,
         path: ['oisFormat'],
-        message: 'Invalid literal value, expected "1.0.0"',
+        message: `Invalid literal value, expected "${packageVersion}"`,
       },
     ])
   );

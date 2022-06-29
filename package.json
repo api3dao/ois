@@ -17,8 +17,10 @@
     "lint:tsc": "yarn compile",
     "lint": "yarn lint:prettier && yarn lint:tsc",
     "prepare": "husky install",
+    "version": "yarn update-fixtures && yarn test && git add --all",
     "test:watch": "jest --watch",
-    "test": "jest"
+    "test": "jest",
+    "update-fixtures": "ts-node --transpileOnly ./dev-scripts/update-fixtures.ts"
   },
   "devDependencies": {
     "@types/jest": "^28.1.3",
