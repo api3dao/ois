@@ -49,7 +49,8 @@ To release a new version follow these steps:
 
 1. `git checkout main && git pull` - ensure you are on a "main" branch with latest changes
 2. `yarn version` - choose "x.y.z" as the version to be released
-3. `yarn build` - only build the package after the "yarn version" command so the bundled "package.json" uses the updated
+3. `git show` - verify the changes of the version commit
+4. `yarn build` - only build the package after the "yarn version" command so the bundled "package.json" uses the updated
    version
-4. `yarn publish --access public`
-5. `git push --follow-tags` - to push the commits to a "main" branch
+5. `yarn publish --access public`
+6. `git push --follow-tags` - to push the commits to a "main" branch
