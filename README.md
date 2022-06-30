@@ -47,9 +47,10 @@ An example of a valid OIS can be found [here](https://github.com/api3dao/ois/blo
 
 To release a new version follow these steps:
 
-```sh
-yarn && yarn build
-yarn version # and choose the version to be released
-yarn publish --access public
-git push --follow-tags
-```
+1. `git checkout main && git pull` - ensure you are on a "main" branch with latest changes
+2. `yarn version` - choose "x.y.z" as the version to be released
+3. `git show` - verify the changes of the version commit
+4. `yarn build` - only build the package after the "yarn version" command so the bundled "package.json" uses the updated
+   version
+5. `yarn publish --access public`
+6. `git push --follow-tags` - to push the commits to a "main" branch
