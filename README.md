@@ -23,6 +23,7 @@ just a part of it. For example:
 const { oisSchema } = require('@api3/ois');
 
 const possibleOis = {
+  // Placeholder values. Refer to the Example section below and the documentation.
   oisFormat: '1.0.0',
   version: '1.2.3',
   title: 'coinlayer',
