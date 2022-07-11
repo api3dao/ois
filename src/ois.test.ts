@@ -10,6 +10,8 @@ import {
   pathNameSchema,
   semverSchema,
   reservedParameterSchema,
+  stringifiedBooleanSchema,
+  endpointSchema,
 } from './ois';
 import { version as packageVersion } from '../package.json';
 
@@ -494,4 +496,12 @@ it('validates oisFormat field', () => {
       },
     ])
   );
+});
+
+it('correctly parses stringified booleans', () => {
+  const strFalse = 'false';
+  const strTrue = 'true';
+
+  expect(stringifiedBooleanSchema.parse(strFalse)).toEqual(false);
+  expect(stringifiedBooleanSchema.parse(strTrue)).toEqual(true);
 });
