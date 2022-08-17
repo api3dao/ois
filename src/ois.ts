@@ -269,8 +269,6 @@ const ensureUniqueEndpointParameterNames: SuperRefinement<EndpointParameter[]> =
 
 const endpointParametersSchema = z.array(endpointParameterSchema).superRefine(ensureUniqueEndpointParameterNames);
 
-export const stringifiedBooleanSchema = z.string().transform((val) => val === 'true');
-
 export const endpointSchema = z
   .object({
     fixedOperationParameters: z.array(fixedParameterSchema),
@@ -278,7 +276,6 @@ export const endpointSchema = z
     operation: endpointOperationSchema,
     parameters: endpointParametersSchema,
     reservedParameters: z.array(reservedParameterSchema),
-    cacheResponses: stringifiedBooleanSchema.optional(),
 
     // Processing is and advanced use case that needs to be used with special care. For this reason,
     // we are defining the processing specification as optional fields.
