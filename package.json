@@ -23,7 +23,7 @@
     "update-fixtures": "ts-node --transpileOnly ./dev-scripts/update-fixtures.ts"
   },
   "devDependencies": {
-    "@types/jest": "^28.1.6",
+    "@types/jest": "^28.1.7",
     "@types/lodash": "^4.14.184",
     "husky": "^8.0.1",
     "jest": "^28.1.3",
