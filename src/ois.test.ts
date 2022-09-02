@@ -493,6 +493,10 @@ describe('reservedParameter validation', () => {
       ])
     );
   });
+
+  it('allows reserved parameters with only { "name": "_type" }', () => {
+    expect(() => reservedParametersSchema.parse([{ name: '_type', fixed: 'int256' }])).not.toThrow();
+  });
 });
 
 it('validates oisFormat field', () => {
