@@ -269,13 +269,26 @@ const ensureUniqueEndpointParameterNames: SuperRefinement<EndpointParameter[]> =
 
 const endpointParametersSchema = z.array(endpointParameterSchema).superRefine(ensureUniqueEndpointParameterNames);
 
+export const reservedParametersSchema = z.array(reservedParameterSchema).superRefine((params, ctx) => {
+  const anyContainType = params.some((param) => {
+    return param.name === '_type';
+  });
+
+  if (!anyContainType) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Reserved parameters must contain object with { "name": "_type" }',
+    });
+  }
+});
+
 export const endpointSchema = z
   .object({
     fixedOperationParameters: z.array(fixedParameterSchema),
     name: z.string(),
     operation: endpointOperationSchema,
     parameters: endpointParametersSchema,
-    reservedParameters: z.array(reservedParameterSchema),
+    reservedParameters: reservedParametersSchema,
 
     // Processing is and advanced use case that needs to be used with special care. For this reason,
     // we are defining the processing specification as optional fields.
@@ -453,6 +466,7 @@ export type ApiSecurityScheme = SchemaType<typeof apiSecuritySchemeSchema>;
 export type ApiKeySecurityScheme = SchemaType<typeof apiKeySecuritySchemeSchema>;
 export type ProcessingSpecification = SchemaType<typeof processingSpecificationSchema>;
 export type ReservedParameterName = SchemaType<typeof reservedParameterNameSchema>;
+export type ReservedParameters = SchemaType<typeof reservedParametersSchema>;
 export type Operation = SchemaType<typeof operationSchema>;
 export type Method = SchemaType<typeof methodSchema>;
 export type Endpoint = SchemaType<typeof endpointSchema>;
