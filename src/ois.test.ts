@@ -481,7 +481,7 @@ describe('reservedParameter validation', () => {
       })
     ).not.toThrow();
   });
-  //
+
   it('disallows reserved parameters without { "name": "_type" }', () => {
     expect(() => reservedParametersSchema.parse([{ name: '_path', default: 'data.0.price' }])).toThrow(
       new ZodError([
