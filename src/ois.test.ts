@@ -10,6 +10,7 @@ import {
   pathNameSchema,
   semverSchema,
   reservedParameterSchema,
+  reservedParametersSchema,
 } from './ois';
 import { version as packageVersion } from '../package.json';
 
@@ -455,29 +456,47 @@ it('validates semantic versioning', () => {
   expect(() => semverSchema.parse('00.01.02')).not.toThrow();
 });
 
-it('validates reserved parameters', () => {
-  expect(() =>
-    reservedParameterSchema.parse({
-      name: '_times',
-      default: '123',
-      fixed: '123',
-    })
-  ).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: 'Reserved parameter must use at most one of "default" and "fixed" properties',
-        path: [],
-      },
-    ])
-  );
+describe('reservedParameter validation', () => {
+  it('validates reserved parameters', () => {
+    expect(() =>
+      reservedParameterSchema.parse({
+        name: '_times',
+        default: '123',
+        fixed: '123',
+      })
+    ).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: 'Reserved parameter must use at most one of "default" and "fixed" properties',
+          path: [],
+        },
+      ])
+    );
 
-  // Empty parameter is allowed (the user is expected to pass it or it won't be used)
-  expect(() =>
-    reservedParameterSchema.parse({
-      name: '_times',
-    })
-  ).not.toThrow();
+    // Empty parameter is allowed (the user is expected to pass it or it won't be used)
+    expect(() =>
+      reservedParameterSchema.parse({
+        name: '_times',
+      })
+    ).not.toThrow();
+  });
+
+  it('disallows reserved parameters without { "name": "_type" }', () => {
+    expect(() => reservedParametersSchema.parse([{ name: '_path', default: 'data.0.price' }])).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: 'Reserved parameters must contain object with { "name": "_type" }',
+          path: [],
+        },
+      ])
+    );
+  });
+
+  it('allows reserved parameters with only { "name": "_type" }', () => {
+    expect(() => reservedParametersSchema.parse([{ name: '_type', fixed: 'int256' }])).not.toThrow();
+  });
 });
 
 it('validates oisFormat field', () => {
