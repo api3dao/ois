@@ -11,6 +11,7 @@ import {
   semverSchema,
   reservedParameterSchema,
   reservedParametersSchema,
+  packageVersionCompatibleSemverSchema,
 } from './ois';
 import { version as packageVersion } from '../package.json';
 
@@ -456,6 +457,31 @@ it('validates semantic versioning', () => {
   expect(() => semverSchema.parse('00.01.02')).not.toThrow();
 });
 
+describe('oisFormat version', () => {
+  const [packageMajor, packageMinor, packagePatch] = packageVersion.split('.');
+
+  const differentPatch = `${packageMajor}.${packageMinor}.${parseInt(packagePatch) + 1}`;
+  const differentMinor = `${packageMajor}.${parseInt(packageMinor) + 1}.${packagePatch}`;
+  const differentMajor = `${parseInt(packageMajor) + 1}.${packageMinor}.${packagePatch}`;
+
+  it('validates packageVersion conforms to semver', () => {
+    expect(() => semverSchema.parse(packageVersion)).not.toThrow();
+  });
+
+  it('allows same version as packageVersion', () => {
+    expect(() => packageVersionCompatibleSemverSchema.parse(packageVersion)).not.toThrow();
+  });
+  it('allows different packageVersion patch', () => {
+    expect(() => packageVersionCompatibleSemverSchema.parse(differentPatch)).not.toThrow();
+  });
+  it('disallows different packageVersion minor', () => {
+    expect(() => packageVersionCompatibleSemverSchema.parse(differentMinor)).toThrow();
+  });
+  it('disallows different packageVersion major', () => {
+    expect(() => packageVersionCompatibleSemverSchema.parse(differentMajor)).toThrow();
+  });
+});
+
 describe('reservedParameter validation', () => {
   it('validates reserved parameters', () => {
     expect(() =>
@@ -506,10 +532,9 @@ it('validates oisFormat field', () => {
   expect(() => oisSchema.parse(invalidOis)).toThrow(
     new ZodError([
       {
-        code: 'invalid_literal',
-        expected: packageVersion,
+        code: 'custom',
+        message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
         path: ['oisFormat'],
-        message: `Invalid literal value, expected "${packageVersion}"`,
       },
     ])
   );
