@@ -499,6 +499,21 @@ describe('oisFormat version', () => {
       ])
     );
   });
+
+  it('validates oisFormat field within oisSchema', () => {
+    const invalidOis = loadOisFixture();
+    invalidOis.oisFormat = '0.0.0';
+
+    expect(() => oisSchema.parse(invalidOis)).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
+          path: ['oisFormat'],
+        },
+      ])
+    );
+  });
 });
 
 describe('reservedParameter validation', () => {
@@ -542,19 +557,4 @@ describe('reservedParameter validation', () => {
   it('allows reserved parameters with only { "name": "_type" }', () => {
     expect(() => reservedParametersSchema.parse([{ name: '_type', fixed: 'int256' }])).not.toThrow();
   });
-});
-
-it('validates oisFormat field', () => {
-  const invalidOis = loadOisFixture();
-  invalidOis.oisFormat = '0.2.3';
-
-  expect(() => oisSchema.parse(invalidOis)).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
-        path: ['oisFormat'],
-      },
-    ])
-  );
 });
