@@ -471,12 +471,15 @@ describe('oisFormat version', () => {
   it('allows same version as packageVersion', () => {
     expect(() => packageVersionCompatibleSemverSchema.parse(packageVersion)).not.toThrow();
   });
+
   it('allows different packageVersion patch', () => {
     expect(() => packageVersionCompatibleSemverSchema.parse(differentPatch)).not.toThrow();
   });
+
   it('disallows different packageVersion minor', () => {
     expect(() => packageVersionCompatibleSemverSchema.parse(differentMinor)).toThrow();
   });
+
   it('disallows different packageVersion major', () => {
     expect(() => packageVersionCompatibleSemverSchema.parse(differentMajor)).toThrow();
   });
