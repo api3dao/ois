@@ -440,9 +440,15 @@ export const semverSchema = z.string().refine((value) => {
   return !semver.find((part) => /^\d+$/.test(part) === false);
 }, 'Expected semantic versioning "x.y.z"');
 
+export const packageVersionCompatibleSemverSchema = semverSchema.refine((semver) => {
+  const [oisMajor, oisMinor, _oisPatch] = semver.split('.');
+  const [packageMajor, packageMinor, _packagePatch] = packageVersion.split('.');
+  return oisMajor === packageMajor && oisMinor === packageMinor;
+}, `oisFormat major.minor version must match major.minor version of "${packageVersion}"`);
+
 export const oisSchema = z
   .object({
-    oisFormat: z.literal(packageVersion),
+    oisFormat: packageVersionCompatibleSemverSchema,
     // Limit the title to 64 characters
     title: z.string().regex(/^[a-zA-Z0-9-_\s]{1,64}$/),
     version: semverSchema,
