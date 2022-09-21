@@ -477,11 +477,27 @@ describe('oisFormat version', () => {
   });
 
   it('disallows different packageVersion minor', () => {
-    expect(() => packageVersionCompatibleSemverSchema.parse(differentMinor)).toThrow();
+    expect(() => packageVersionCompatibleSemverSchema.parse(differentMinor)).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
+          path: [],
+        },
+      ])
+    );
   });
 
   it('disallows different packageVersion major', () => {
-    expect(() => packageVersionCompatibleSemverSchema.parse(differentMajor)).toThrow();
+    expect(() => packageVersionCompatibleSemverSchema.parse(differentMajor)).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
+          path: [],
+        },
+      ])
+    );
   });
 });
 
