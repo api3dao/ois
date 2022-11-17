@@ -572,7 +572,7 @@ describe('reservedParameter validation', () => {
         },
       ])
     );
-  }) 
+  });
 
   it(`allow "endpoint[n].operation" and "endpoint[n].fixedOperationParameters" to be undefind for skipping API call.`, () => {
     const ois = loadOisFixture();
@@ -580,11 +580,11 @@ describe('reservedParameter validation', () => {
     ois.endpoints[0].fixedOperationParameters = undefined;
     ois.endpoints[0].postProcessingSpecifications = [
       {
-        "environment": "Node 14",
-        "timeoutMs": 5000,
-        "value": "output = input;"
-      }
+        environment: 'Node 14',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
     ];
     expect(() => oisSchema.parse(ois)).not.toThrow();
-  })
+  });
 });

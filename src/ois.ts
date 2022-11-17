@@ -285,7 +285,7 @@ export const reservedParametersSchema = z.array(reservedParameterSchema).superRe
 export const endpointSchema = z
   .object({
     fixedOperationParameters: z.array(fixedParameterSchema).optional(),
-    name: z.string(), 
+    name: z.string(),
     operation: endpointOperationSchema.optional(),
     parameters: endpointParametersSchema,
     reservedParameters: reservedParametersSchema,
@@ -307,7 +307,10 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
 }> = (ois, ctx) => {
   ois.endpoints.forEach((endpoint, oisIndex) => {
     const params = endpoint.parameters.map((p) => p.operationParameter);
-    const fixedParams = endpoint.fixedOperationParameters !== undefined ? endpoint.fixedOperationParameters.map((p) => p.operationParameter) : [];
+    const fixedParams =
+      endpoint.fixedOperationParameters !== undefined
+        ? endpoint.fixedOperationParameters.map((p) => p.operationParameter)
+        : [];
     const checkUniqueness = (section: 'parameters' | 'fixedOperationParameters') => {
       const paramsToCheck = section === 'parameters' ? params : fixedParams;
       paramsToCheck.forEach((param, paramIndex) => {
@@ -352,16 +355,15 @@ const ensurePostProcessingSpecificationsExistsWhenSkippingApiCall: SuperRefineme
 }> = (ois, ctx) => {
   const { endpoints } = ois;
   forEach(endpoints, (endpoint) => {
-    if(!endpoint.operation && !endpoint.fixedOperationParameters && !endpoint.postProcessingSpecifications) {
+    if (!endpoint.operation && !endpoint.fixedOperationParameters && !endpoint.postProcessingSpecifications) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `"postProcessingSpecifications" must not be empty when "operation" and "fixedOperationParameters" are not specified.`,
         path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
       });
     }
-  })
-
-}
+  });
+};
 
 const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
   endpoints: Endpoint[];
@@ -372,19 +374,20 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
   // Ensure every "apiSpecification.paths" parameter is defined in "endpoints"
   forEach(apiSpecifications.paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
-      const apiEndpoints = endpoints.filter(
-        ({ operation }) => {
-          if(!operation) {
-            return false;
-          }
-          return operation.method === httpMethod && operation.path === rawPath;
+      const apiEndpoints = endpoints.filter(({ operation }) => {
+        if (!operation) {
+          return false;
         }
-      );
+        return operation.method === httpMethod && operation.path === rawPath;
+      });
       if (!apiEndpoints.length) return; // Missing endpoint for apiSpecification should only be a warning
 
       apiEndpoints.forEach((endpoint) => {
         paramData!.parameters.forEach((apiParam) => {
-          const allEndpointParams = endpoint.fixedOperationParameters !== undefined ? [...endpoint.parameters, ...endpoint.fixedOperationParameters]: [...endpoint.parameters];
+          const allEndpointParams =
+            endpoint.fixedOperationParameters !== undefined
+              ? [...endpoint.parameters, ...endpoint.fixedOperationParameters]
+              : [...endpoint.parameters];
           const endpointParam = allEndpointParams.find(
             ({ operationParameter }) =>
               operationParameter.in === apiParam.in && operationParameter.name === apiParam.name
@@ -403,7 +406,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
 
   // Ensure every endpoint parameter references parameter from "apiSpecification.paths"
   endpoints.forEach((endpoint, endpointIndex) => {
-    if(endpoint.operation && endpoint.fixedOperationParameters) {
+    if (endpoint.operation && endpoint.fixedOperationParameters) {
       const { operation, parameters, fixedOperationParameters } = endpoint;
 
       const apiSpec = find(apiSpecifications.paths, (pathData, path) => {
