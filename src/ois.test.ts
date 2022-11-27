@@ -574,6 +574,22 @@ describe('reservedParameter validation', () => {
     );
   });
 
+  it(`fails if "endpoint[n].postProcessingSpecifications" is empty array when "endpoint[n].operation" and "endpoint[n].fixedOperationParameters" are undefined`, () => {
+    const invalidOis = loadOisFixture();
+    invalidOis.endpoints[0].operation = undefined;
+    invalidOis.endpoints[0].fixedOperationParameters = undefined;
+    invalidOis.endpoints[0].postProcessingSpecifications = [];
+    expect(() => oisSchema.parse(invalidOis)).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: `"postProcessingSpecifications" must not be empty when "operation" and "fixedOperationParameters" are not specified.`,
+          path: ['ois', 'endpoints', 0],
+        },
+      ])
+    );
+  });
+
   it(`allow "endpoint[n].operation" and "endpoint[n].fixedOperationParameters" to be undefind for skipping API call.`, () => {
     const ois = loadOisFixture();
     ois.endpoints[0].operation = undefined;
