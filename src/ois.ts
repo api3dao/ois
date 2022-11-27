@@ -352,7 +352,7 @@ const ensurePostProcessingSpecificationsExistsWhenSkippingApiCall: SuperRefineme
 }> = (ois, ctx) => {
   const { endpoints } = ois;
   forEach(endpoints, (endpoint) => {
-    if (!endpoint.operation && !endpoint.fixedOperationParameters && !endpoint.postProcessingSpecifications) {
+    if (!endpoint.operation && !endpoint.fixedOperationParameters && (!endpoint.postProcessingSpecifications) || endpoint.postProcessingSpecifications?.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `"postProcessingSpecifications" must not be empty when "operation" and "fixedOperationParameters" are not specified.`,
