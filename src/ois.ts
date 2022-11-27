@@ -352,7 +352,10 @@ const ensurePostProcessingSpecificationsExistsWhenSkippingApiCall: SuperRefineme
 }> = (ois, ctx) => {
   const { endpoints } = ois;
   forEach(endpoints, (endpoint) => {
-    if (!endpoint.operation && !endpoint.fixedOperationParameters && (!endpoint.postProcessingSpecifications) || endpoint.postProcessingSpecifications?.length === 0) {
+    if (
+      (!endpoint.operation && !endpoint.fixedOperationParameters && !endpoint.postProcessingSpecifications) ||
+      endpoint.postProcessingSpecifications?.length === 0
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `"postProcessingSpecifications" must not be empty when "operation" and "fixedOperationParameters" are not specified.`,
@@ -372,8 +375,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
   forEach(apiSpecifications.paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
       const apiEndpoints = endpoints.filter(({ operation }) => {
-        if (!operation) 
-          return false;
+        if (!operation) return false;
         return operation.method === httpMethod && operation.path === rawPath;
       });
       if (!apiEndpoints.length) return; // Missing endpoint for apiSpecification should only be a warning
