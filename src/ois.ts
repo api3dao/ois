@@ -307,10 +307,7 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
 }> = (ois, ctx) => {
   ois.endpoints.forEach((endpoint, oisIndex) => {
     const params = endpoint.parameters.map((p) => p.operationParameter);
-    const fixedParams =
-      endpoint.fixedOperationParameters !== undefined
-        ? endpoint.fixedOperationParameters.map((p) => p.operationParameter)
-        : [];
+    const fixedParams = endpoint.fixedOperationParameters?.map((p) => p.operationParameter) ?? [];
     const checkUniqueness = (section: 'parameters' | 'fixedOperationParameters') => {
       const paramsToCheck = section === 'parameters' ? params : fixedParams;
       paramsToCheck.forEach((param, paramIndex) => {
@@ -375,19 +372,15 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
   forEach(apiSpecifications.paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
       const apiEndpoints = endpoints.filter(({ operation }) => {
-        if (!operation) {
+        if (!operation) 
           return false;
-        }
         return operation.method === httpMethod && operation.path === rawPath;
       });
       if (!apiEndpoints.length) return; // Missing endpoint for apiSpecification should only be a warning
 
       apiEndpoints.forEach((endpoint) => {
         paramData!.parameters.forEach((apiParam) => {
-          const allEndpointParams =
-            endpoint.fixedOperationParameters !== undefined
-              ? [...endpoint.parameters, ...endpoint.fixedOperationParameters]
-              : [...endpoint.parameters];
+          const allEndpointParams = [...endpoint.parameters, ...(endpoint.fixedOperationParameters ?? [])];
           const endpointParam = allEndpointParams.find(
             ({ operationParameter }) =>
               operationParameter.in === apiParam.in && operationParameter.name === apiParam.name
