@@ -284,7 +284,7 @@ export const reservedParametersSchema = z.array(reservedParameterSchema).superRe
 
 export const endpointSchema = z
   .object({
-    fixedOperationParameters: z.array(fixedParameterSchema).optional(),
+    fixedOperationParameters: z.array(fixedParameterSchema),
     name: z.string(),
     operation: endpointOperationSchema.optional(),
     parameters: endpointParametersSchema,
@@ -307,7 +307,7 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
 }> = (ois, ctx) => {
   ois.endpoints.forEach((endpoint, oisIndex) => {
     const params = endpoint.parameters.map((p) => p.operationParameter);
-    const fixedParams = endpoint.fixedOperationParameters?.map((p) => p.operationParameter) ?? [];
+    const fixedParams = endpoint.fixedOperationParameters.map((p) => p.operationParameter);
     const checkUniqueness = (section: 'parameters' | 'fixedOperationParameters') => {
       const paramsToCheck = section === 'parameters' ? params : fixedParams;
       paramsToCheck.forEach((param, paramIndex) => {
@@ -347,21 +347,29 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
   });
 };
 
-const ensurePostProcessingSpecificationsExistsWhenSkippingApiCall: SuperRefinement<{
+const ensureApiCallSkipRequirements: SuperRefinement<{
   endpoints: Endpoint[];
 }> = (ois, ctx) => {
   const { endpoints } = ois;
   forEach(endpoints, (endpoint) => {
     if (
-      (!endpoint.operation && !endpoint.fixedOperationParameters && !endpoint.postProcessingSpecifications) ||
-      endpoint.postProcessingSpecifications?.length === 0
+      !endpoint.operation && endpoint.fixedOperationParameters.length === 0 && ((!endpoint.postProcessingSpecifications || endpoint.postProcessingSpecifications?.length === 0) && (!endpoint.preProcessingSpecifications || endpoint.preProcessingSpecifications?.length === 0))
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `"postProcessingSpecifications" must not be empty when "operation" and "fixedOperationParameters" are not specified.`,
+        message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
         path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
       });
     }
+
+    if(!endpoint.operation && endpoint.fixedOperationParameters.length !== 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
+        path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
+      });
+    }
+
   });
 };
 
@@ -382,7 +390,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
 
       apiEndpoints.forEach((endpoint) => {
         paramData!.parameters.forEach((apiParam) => {
-          const allEndpointParams = [...endpoint.parameters, ...(endpoint.fixedOperationParameters ?? [])];
+          const allEndpointParams = [...endpoint.parameters, ...endpoint.fixedOperationParameters];
           const endpointParam = allEndpointParams.find(
             ({ operationParameter }) =>
               operationParameter.in === apiParam.in && operationParameter.name === apiParam.name
@@ -401,7 +409,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
 
   // Ensure every endpoint parameter references parameter from "apiSpecification.paths"
   endpoints.forEach((endpoint, endpointIndex) => {
-    if (endpoint.operation && endpoint.fixedOperationParameters) {
+    if (endpoint.operation) {
       const { operation, parameters, fixedOperationParameters } = endpoint;
 
       const apiSpec = find(apiSpecifications.paths, (pathData, path) => {
@@ -479,7 +487,7 @@ export const oisSchema = z
   .strict()
   .superRefine(ensureSingleParameterUsagePerEndpoint)
   .superRefine(ensureEndpointAndApiSpecificationParamsMatch)
-  .superRefine(ensurePostProcessingSpecificationsExistsWhenSkippingApiCall);
+  .superRefine(ensureApiCallSkipRequirements);
 
 export const RESERVED_PARAMETERS = reservedParameterNameSchema.options.map((option) => option.value);
 export type Paths = SchemaType<typeof pathsSchema>;
