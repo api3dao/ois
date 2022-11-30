@@ -353,7 +353,10 @@ const ensureApiCallSkipRequirements: SuperRefinement<{
   const { endpoints } = ois;
   forEach(endpoints, (endpoint) => {
     if (
-      !endpoint.operation && endpoint.fixedOperationParameters.length === 0 && ((!endpoint.postProcessingSpecifications || endpoint.postProcessingSpecifications?.length === 0) && (!endpoint.preProcessingSpecifications || endpoint.preProcessingSpecifications?.length === 0))
+      !endpoint.operation &&
+      endpoint.fixedOperationParameters.length === 0 &&
+      (!endpoint.postProcessingSpecifications || endpoint.postProcessingSpecifications?.length === 0) &&
+      (!endpoint.preProcessingSpecifications || endpoint.preProcessingSpecifications?.length === 0)
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -362,14 +365,13 @@ const ensureApiCallSkipRequirements: SuperRefinement<{
       });
     }
 
-    if(!endpoint.operation && endpoint.fixedOperationParameters.length !== 0) {
+    if (!endpoint.operation && endpoint.fixedOperationParameters.length !== 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
         path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
       });
     }
-
   });
 };
 

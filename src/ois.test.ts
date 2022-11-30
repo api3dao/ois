@@ -650,12 +650,12 @@ describe('API call skip validation', () => {
     invalidOis.endpoints[0].operation = undefined;
     invalidOis.endpoints[0].fixedOperationParameters = [
       {
-        "operationParameter": {
-          "in": "query",
-          "name": "to"
+        operationParameter: {
+          in: 'query',
+          name: 'to',
         },
-        "value": "USD"
-      }
+        value: 'USD',
+      },
     ];
     expect(() => oisSchema.parse(invalidOis)).toThrow(
       new ZodError([
@@ -667,4 +667,4 @@ describe('API call skip validation', () => {
       ])
     );
   });
-})
+});
