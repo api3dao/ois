@@ -94,7 +94,7 @@ describe('parameter uniqueness', () => {
       in: 'query',
       name: paramName,
     });
-    ois.endpoints[0].fixedOperationParameters!.push({
+    ois.endpoints[0].fixedOperationParameters.push({
       operationParameter: {
         in: 'query',
         name: paramName,
@@ -105,7 +105,7 @@ describe('parameter uniqueness', () => {
       in: 'cookie',
       name: paramName,
     });
-    ois.endpoints[0].fixedOperationParameters!.push({
+    ois.endpoints[0].fixedOperationParameters.push({
       operationParameter: {
         in: 'cookie',
         name: paramName,
@@ -138,7 +138,7 @@ describe('parameter uniqueness', () => {
 
   it(`fails if the same operation parameter is used in "fixedOperationParameters"`, () => {
     const ois = loadOisFixture();
-    ois.endpoints[0].fixedOperationParameters!.push(ois.endpoints[0].fixedOperationParameters![0] as any);
+    ois.endpoints[0].fixedOperationParameters.push(ois.endpoints[0].fixedOperationParameters[0] as any);
 
     expect(() => oisSchema.parse(ois)).toThrow(
       new ZodError([
@@ -158,7 +158,7 @@ describe('parameter uniqueness', () => {
 
   it('fails if the same operation parameter is used in both "fixedOperationParameters" and "parameters"', () => {
     const ois = loadOisFixture();
-    ois.endpoints[0].fixedOperationParameters!.push({
+    ois.endpoints[0].fixedOperationParameters.push({
       operationParameter: ois.endpoints[0].parameters[0].operationParameter,
       value: '123',
     });
@@ -557,43 +557,63 @@ describe('reservedParameter validation', () => {
   it('allows reserved parameters with only { "name": "_type" }', () => {
     expect(() => reservedParametersSchema.parse([{ name: '_type', fixed: 'int256' }])).not.toThrow();
   });
+});
 
-  it(`fails if "endpoint[n].postProcessingSpecifications" is undefined when "endpoint[n].operation" and "endpoint[n].fixedOperationParameters" are undefined`, () => {
+describe('API call skip validation', () => {
+  it(`fails if both "endpoint[n].preProcessingSpecifications" and "endpoint[n].postProcessingSpecifications" are undefined when "endpoint[n].operation" is undefined and "endpoint[n].fixedOperationParameters" is empty array.`, () => {
     const invalidOis = loadOisFixture();
     invalidOis.endpoints[0].operation = undefined;
-    invalidOis.endpoints[0].fixedOperationParameters = undefined;
+    invalidOis.endpoints[0].fixedOperationParameters = [];
+    invalidOis.endpoints[0].preProcessingSpecifications = undefined;
     invalidOis.endpoints[0].postProcessingSpecifications = undefined;
     expect(() => oisSchema.parse(invalidOis)).toThrow(
       new ZodError([
         {
           code: 'custom',
-          message: `"postProcessingSpecifications" must not be empty when "operation" and "fixedOperationParameters" are not specified.`,
+          message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
           path: ['ois', 'endpoints', 0],
         },
       ])
     );
   });
 
-  it(`fails if "endpoint[n].postProcessingSpecifications" is empty array when "endpoint[n].operation" and "endpoint[n].fixedOperationParameters" are undefined`, () => {
+  it(`fails if both "endpoint[n].preProcessingSpecifications" and "endpoint[n].postProcessingSpecifications" are empty array when "endpoint[n].operation" is undefined and "endpoint[n].fixedOperationParameters" is empty array.`, () => {
     const invalidOis = loadOisFixture();
     invalidOis.endpoints[0].operation = undefined;
-    invalidOis.endpoints[0].fixedOperationParameters = undefined;
+    invalidOis.endpoints[0].fixedOperationParameters = [];
+    invalidOis.endpoints[0].preProcessingSpecifications = [];
     invalidOis.endpoints[0].postProcessingSpecifications = [];
     expect(() => oisSchema.parse(invalidOis)).toThrow(
       new ZodError([
         {
           code: 'custom',
-          message: `"postProcessingSpecifications" must not be empty when "operation" and "fixedOperationParameters" are not specified.`,
+          message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
           path: ['ois', 'endpoints', 0],
         },
       ])
     );
   });
 
-  it(`allow "endpoint[n].operation" and "endpoint[n].fixedOperationParameters" to be undefind for skipping API call.`, () => {
+  it(`allow "endpoint[n].operation" to be undefined and "endpoint[n].fixedOperationParameters" to be empty array when "endpoint[n].preProcessingSpecifications" is defined for skipping API call.`, () => {
     const ois = loadOisFixture();
     ois.endpoints[0].operation = undefined;
-    ois.endpoints[0].fixedOperationParameters = undefined;
+    ois.endpoints[0].fixedOperationParameters = [];
+    ois.endpoints[0].preProcessingSpecifications = [
+      {
+        environment: 'Node 14',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
+    ];
+    ois.endpoints[0].postProcessingSpecifications = undefined;
+    expect(() => oisSchema.parse(ois)).not.toThrow();
+  });
+
+  it(`allow "endpoint[n].operation" to be undefined and "endpoint[n].fixedOperationParameters" to be empty array when "endpoint[n].postProcessingSpecifications" is defined for skipping API call.`, () => {
+    const ois = loadOisFixture();
+    ois.endpoints[0].operation = undefined;
+    ois.endpoints[0].fixedOperationParameters = [];
+    ois.endpoints[0].preProcessingSpecifications = undefined;
     ois.endpoints[0].postProcessingSpecifications = [
       {
         environment: 'Node 14',
@@ -603,4 +623,48 @@ describe('reservedParameter validation', () => {
     ];
     expect(() => oisSchema.parse(ois)).not.toThrow();
   });
-});
+
+  it(`allow "endpoint[n].operation" to be undefined and "endpoint[n].fixedOperationParameters" to be empty array when both "endpoint[n].preProcessingSpecifications" and "endpoint[n].postProcessingSpecifications" are defined for skipping API call.`, () => {
+    const ois = loadOisFixture();
+    ois.endpoints[0].operation = undefined;
+    ois.endpoints[0].fixedOperationParameters = [];
+    ois.endpoints[0].preProcessingSpecifications = [
+      {
+        environment: 'Node 14',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
+    ];
+    ois.endpoints[0].postProcessingSpecifications = [
+      {
+        environment: 'Node 14',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
+    ];
+    expect(() => oisSchema.parse(ois)).not.toThrow();
+  });
+
+  it(`fails if "endpoint[n].fixedOperationParameters" is not empty array when "endpoint[n].operation" is undefined.`, () => {
+    const invalidOis = loadOisFixture();
+    invalidOis.endpoints[0].operation = undefined;
+    invalidOis.endpoints[0].fixedOperationParameters = [
+      {
+        "operationParameter": {
+          "in": "query",
+          "name": "to"
+        },
+        "value": "USD"
+      }
+    ];
+    expect(() => oisSchema.parse(invalidOis)).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
+          path: ['ois', 'endpoints', 0],
+        },
+      ])
+    );
+  });
+})
