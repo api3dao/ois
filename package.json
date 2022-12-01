@@ -1,7 +1,7 @@
 {
   "name": "@api3/ois",
   "license": "MIT",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": false,
   "main": "dist/src/index",
   "types": "dist/src/index",
