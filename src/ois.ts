@@ -286,7 +286,7 @@ export const endpointSchema = z
   .object({
     fixedOperationParameters: z.array(fixedParameterSchema),
     name: z.string(),
-    operation: endpointOperationSchema,
+    operation: endpointOperationSchema.optional(),
     parameters: endpointParametersSchema,
     reservedParameters: reservedParametersSchema,
 
@@ -347,6 +347,34 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
   });
 };
 
+const ensureApiCallSkipRequirements: SuperRefinement<{
+  endpoints: Endpoint[];
+}> = (ois, ctx) => {
+  const { endpoints } = ois;
+  forEach(endpoints, (endpoint) => {
+    if (
+      !endpoint.operation &&
+      endpoint.fixedOperationParameters.length === 0 &&
+      (!endpoint.postProcessingSpecifications || endpoint.postProcessingSpecifications?.length === 0) &&
+      (!endpoint.preProcessingSpecifications || endpoint.preProcessingSpecifications?.length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+        path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
+      });
+    }
+
+    if (!endpoint.operation && endpoint.fixedOperationParameters.length !== 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
+        path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
+      });
+    }
+  });
+};
+
 const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
   endpoints: Endpoint[];
   apiSpecifications: ApiSpecification;
@@ -356,9 +384,10 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
   // Ensure every "apiSpecification.paths" parameter is defined in "endpoints"
   forEach(apiSpecifications.paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
-      const apiEndpoints = endpoints.filter(
-        ({ operation }) => operation.method === httpMethod && operation.path === rawPath
-      );
+      const apiEndpoints = endpoints.filter(({ operation }) => {
+        if (!operation) return false;
+        return operation.method === httpMethod && operation.path === rawPath;
+      });
       if (!apiEndpoints.length) return; // Missing endpoint for apiSpecification should only be a warning
 
       apiEndpoints.forEach((endpoint) => {
@@ -382,54 +411,56 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
 
   // Ensure every endpoint parameter references parameter from "apiSpecification.paths"
   endpoints.forEach((endpoint, endpointIndex) => {
-    const { operation, parameters, fixedOperationParameters } = endpoint;
+    if (endpoint.operation) {
+      const { operation, parameters, fixedOperationParameters } = endpoint;
 
-    const apiSpec = find(apiSpecifications.paths, (pathData, path) => {
-      if (operation.path !== path) return false;
+      const apiSpec = find(apiSpecifications.paths, (pathData, path) => {
+        if (operation.path !== path) return false;
 
-      return !!find(pathData, (_, httpMethod) => operation.method === httpMethod);
-    });
-    if (!apiSpec) {
-      return ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `No matching API specification found in "apiSpecifications" section`,
-        path: ['ois', 'endpoints', endpointIndex],
+        return !!find(pathData, (_, httpMethod) => operation.method === httpMethod);
       });
-    }
-
-    // Ensure every parameter exist in "apiSpecification"
-    parameters.forEach((endpointParam, endpointParamIndex) => {
-      const { operationParameter } = endpointParam;
-      const apiParam = apiSpec[operation.method]!.parameters.find(
-        (p) => p.in === operationParameter.in && p.name === operationParameter.name
-      );
-
-      if (!apiParam) {
-        ctx.addIssue({
+      if (!apiSpec) {
+        return ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `No matching API specification parameter found in "apiSpecifications" section`,
-          path: ['ois', 'endpoints', endpointIndex, 'parameters', endpointParamIndex],
+          message: `No matching API specification found in "apiSpecifications" section`,
+          path: ['ois', 'endpoints', endpointIndex],
         });
       }
-    });
 
-    // Ensure every fixed parameter exist in "apiSpecification"
-    fixedOperationParameters.forEach((endpointParam, endpointParamIndex) => {
-      const { operationParameter } = endpointParam;
-      const apiParam = apiSpec[operation.method]!.parameters.find(
-        (p) => p.in === operationParameter.in && p.name === operationParameter.name
-      );
+      // Ensure every parameter exist in "apiSpecification"
+      parameters.forEach((endpointParam, endpointParamIndex) => {
+        const { operationParameter } = endpointParam;
+        const apiParam = apiSpec[operation.method]!.parameters.find(
+          (p) => p.in === operationParameter.in && p.name === operationParameter.name
+        );
 
-      if (!apiParam) {
         if (!apiParam) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: `No matching API specification parameter found in "apiSpecifications" section`,
-            path: ['ois', 'endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
+            path: ['ois', 'endpoints', endpointIndex, 'parameters', endpointParamIndex],
           });
         }
-      }
-    });
+      });
+
+      // Ensure every fixed parameter exist in "apiSpecification"
+      fixedOperationParameters.forEach((endpointParam, endpointParamIndex) => {
+        const { operationParameter } = endpointParam;
+        const apiParam = apiSpec[operation.method]!.parameters.find(
+          (p) => p.in === operationParameter.in && p.name === operationParameter.name
+        );
+
+        if (!apiParam) {
+          if (!apiParam) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `No matching API specification parameter found in "apiSpecifications" section`,
+              path: ['ois', 'endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
+            });
+          }
+        }
+      });
+    }
   });
 };
 
@@ -457,7 +488,8 @@ export const oisSchema = z
   })
   .strict()
   .superRefine(ensureSingleParameterUsagePerEndpoint)
-  .superRefine(ensureEndpointAndApiSpecificationParamsMatch);
+  .superRefine(ensureEndpointAndApiSpecificationParamsMatch)
+  .superRefine(ensureApiCallSkipRequirements);
 
 export const RESERVED_PARAMETERS = reservedParameterNameSchema.options.map((option) => option.value);
 export type Paths = SchemaType<typeof pathsSchema>;
