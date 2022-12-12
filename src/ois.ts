@@ -11,6 +11,8 @@ function removeBraces(value: string) {
   return trimEnd(trimStart(value, '{'), '}');
 }
 
+const nonNegativeIntSchema = z.number().int().nonnegative();
+
 export const parameterTargetSchema = z.union([
   z.literal('path'),
   z.literal('query'),
@@ -67,7 +69,12 @@ export const endpointParameterSchema = z
   })
   .strict();
 
-export const reservedParameterNameSchema = z.union([z.literal('_type'), z.literal('_path'), z.literal('_times')]);
+export const reservedParameterNameSchema = z.union([
+  z.literal('_type'),
+  z.literal('_path'),
+  z.literal('_times'),
+  z.literal('_minConfirmations'),
+]);
 
 export const reservedParameterSchema = z
   .object({
@@ -86,7 +93,19 @@ export const reservedParameterSchema = z
     const isDefaultValueDefined = defaultValue !== undefined;
 
     return !isFixedValueDefined || !isDefaultValueDefined;
-  }, 'Reserved parameter must use at most one of "default" and "fixed" properties');
+  }, 'Reserved parameter must use at most one of "default" and "fixed" properties')
+  .superRefine((param, ctx) => {
+    // Default or fixed, or neither, may be present as validated by refine above
+    const val = param.default ? param.default : param.fixed;
+
+    // Validate a value if present
+    if (param.name === '_minConfirmations' && val && !nonNegativeIntSchema.safeParse(parseInt(val)).success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Reserved parameter _minConfirmations must be a non-negative integer if present',
+      });
+    }
+  });
 
 export const serverSchema = z
   .object({
@@ -247,7 +266,7 @@ export const processingSpecificationSchema = z
   .object({
     environment: z.union([z.literal('Node 14'), z.literal('Node 14 async')]),
     value: z.string(),
-    timeoutMs: z.number().int(),
+    timeoutMs: nonNegativeIntSchema,
   })
   .strict();
 

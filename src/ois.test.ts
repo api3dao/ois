@@ -557,6 +557,30 @@ describe('reservedParameter validation', () => {
   it('allows reserved parameters with only { "name": "_type" }', () => {
     expect(() => reservedParametersSchema.parse([{ name: '_type', fixed: 'int256' }])).not.toThrow();
   });
+
+  it('allows missing value or non-negative integer strings for _minConfirmations', () => {
+    const validIntStrDefault = { name: '_minConfirmations', default: '3' };
+    const validIntStrFixed = { name: '_minConfirmations', fixed: '3' };
+    const validMissing = { name: '_minConfirmations' };
+    const invalidNotInt = { name: '_minConfirmations', default: 'text' };
+    const invalidNegativeInt = { name: '_minConfirmations', default: '-5' };
+
+    [validIntStrDefault, validIntStrFixed, validMissing].forEach((obj) =>
+      expect(() => reservedParameterSchema.parse(obj)).not.toThrow()
+    );
+
+    [invalidNotInt, invalidNegativeInt].forEach((obj) =>
+      expect(() => reservedParameterSchema.parse(obj)).toThrow(
+        new ZodError([
+          {
+            code: 'custom',
+            message: 'Reserved parameter _minConfirmations must be a non-negative integer if present',
+            path: [],
+          },
+        ])
+      )
+    );
+  });
 });
 
 describe('API call skip validation', () => {
