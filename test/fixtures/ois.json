@@ -73,6 +73,10 @@
         {
           "name": "_times",
           "default": "1000000"
+        },
+        {
+          "name": "_minConfirmations",
+          "default": "6"
         }
       ],
       "parameters": [
