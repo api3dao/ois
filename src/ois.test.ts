@@ -558,29 +558,31 @@ describe('reservedParameter validation', () => {
     expect(() => reservedParametersSchema.parse([{ name: '_type', fixed: 'int256' }])).not.toThrow();
   });
 
-  it('allows missing value or non-negative integer strings for _minConfirmations', () => {
-    const validIntStrDefault = { name: '_minConfirmations', default: '3' };
-    const validIntStrFixed = { name: '_minConfirmations', fixed: '3' };
-    // If default and fixed are absent, the user (requester) is expected to pass the value as parameter
-    const validMissing = { name: '_minConfirmations' };
-    const invalidNotInt = { name: '_minConfirmations', default: 'text' };
-    const invalidNegativeInt = { name: '_minConfirmations', default: '-5' };
+  ['_minConfirmations', '_gasPrice'].forEach((reservedParam) => {
+    it(`allows missing value or non-negative integer strings for ${reservedParam}`, () => {
+      const validIntStrDefault = { name: reservedParam, default: '3' };
+      const validIntStrFixed = { name: reservedParam, fixed: '3' };
+      // If default and fixed are absent, the user (requester) is expected to pass the value as parameter
+      const validMissing = { name: reservedParam };
+      const invalidNotInt = { name: reservedParam, default: 'text' };
+      const invalidNegativeInt = { name: reservedParam, default: '-5' };
 
-    [validIntStrDefault, validIntStrFixed, validMissing].forEach((obj) =>
-      expect(() => reservedParameterSchema.parse(obj)).not.toThrow()
-    );
+      [validIntStrDefault, validIntStrFixed, validMissing].forEach((obj) =>
+        expect(() => reservedParameterSchema.parse(obj)).not.toThrow()
+      );
 
-    [invalidNotInt, invalidNegativeInt].forEach((obj) =>
-      expect(() => reservedParameterSchema.parse(obj)).toThrow(
-        new ZodError([
-          {
-            code: 'custom',
-            message: 'Reserved parameter _minConfirmations must be a non-negative integer if present',
-            path: [],
-          },
-        ])
-      )
-    );
+      [invalidNotInt, invalidNegativeInt].forEach((obj) =>
+        expect(() => reservedParameterSchema.parse(obj)).toThrow(
+          new ZodError([
+            {
+              code: 'custom',
+              message: `Reserved parameter ${reservedParam} must be a non-negative integer if present`,
+              path: [],
+            },
+          ])
+        )
+      );
+    });
   });
 });
 

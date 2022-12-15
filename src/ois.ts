@@ -74,6 +74,7 @@ export const reservedParameterNameSchema = z.union([
   z.literal('_path'),
   z.literal('_times'),
   z.literal('_minConfirmations'),
+  z.literal('_gasPrice'),
 ]);
 
 export const reservedParameterSchema = z
@@ -97,12 +98,17 @@ export const reservedParameterSchema = z
   .superRefine((param, ctx) => {
     // Default or fixed, or neither, may be present as validated by refine above
     const val = param.default ? param.default : param.fixed;
+    const name = param.name;
 
-    // Validate a value if present
-    if (param.name === '_minConfirmations' && val && !nonNegativeIntSchema.safeParse(parseInt(val)).success) {
+    // Validate value if present
+    if (
+      (name === '_minConfirmations' || name === '_gasPrice') &&
+      val &&
+      !nonNegativeIntSchema.safeParse(parseInt(val)).success
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Reserved parameter _minConfirmations must be a non-negative integer if present',
+        message: `Reserved parameter ${name} must be a non-negative integer if present`,
       });
     }
   });
