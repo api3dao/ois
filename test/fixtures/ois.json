@@ -75,8 +75,10 @@
           "default": "1000000"
         },
         {
-          "name": "_minConfirmations",
-          "default": "6"
+          "name": "_minConfirmations"
+        },
+        {
+          "name": "_gasPrice"
         }
       ],
       "parameters": [
