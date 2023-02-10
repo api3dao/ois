@@ -627,7 +627,7 @@ describe('API call skip validation', () => {
     ois.endpoints[0].fixedOperationParameters = [];
     ois.endpoints[0].preProcessingSpecifications = [
       {
-        environment: 'Node 14',
+        environment: 'Node',
         timeoutMs: 5000,
         value: 'output = input;',
       },
@@ -643,7 +643,7 @@ describe('API call skip validation', () => {
     ois.endpoints[0].preProcessingSpecifications = undefined;
     ois.endpoints[0].postProcessingSpecifications = [
       {
-        environment: 'Node 14',
+        environment: 'Node',
         timeoutMs: 5000,
         value: 'output = input;',
       },
@@ -657,14 +657,14 @@ describe('API call skip validation', () => {
     ois.endpoints[0].fixedOperationParameters = [];
     ois.endpoints[0].preProcessingSpecifications = [
       {
-        environment: 'Node 14',
+        environment: 'Node',
         timeoutMs: 5000,
         value: 'output = input;',
       },
     ];
     ois.endpoints[0].postProcessingSpecifications = [
       {
-        environment: 'Node 14',
+        environment: 'Node',
         timeoutMs: 5000,
         value: 'output = input;',
       },

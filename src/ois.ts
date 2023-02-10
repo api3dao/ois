@@ -270,7 +270,7 @@ export const apiSpecificationSchema = z
 
 export const processingSpecificationSchema = z
   .object({
-    environment: z.union([z.literal('Node 14'), z.literal('Node 14 async')]),
+    environment: z.union([z.literal('Node'), z.literal('Node async')]),
     value: z.string(),
     timeoutMs: nonNegativeIntSchema,
   })
