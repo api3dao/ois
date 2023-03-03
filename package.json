@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "build": "yarn run clean && yarn run compile",
-    "clean": "rimraf -rf *.tsbuildinfo ./dist *.tgz",
+    "clean": "rimraf -g *.tsbuildinfo ./dist *.tgz",
     "compile": "tsc --build tsconfig.json",
     "lint:prettier:fix": "yarn prettier --write \"./**/*.{js,ts,md,yml}\"",
     "lint:prettier": "yarn prettier --check \"./**/*.{js,ts,md,yml}\"",
