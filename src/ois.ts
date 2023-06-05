@@ -35,7 +35,7 @@ export const operationParameterSchema = z
 export const fixedParameterSchema = z
   .object({
     operationParameter: operationParameterSchema,
-    value: z.string(),
+    value: z.any(),
   })
   .strict();
 
