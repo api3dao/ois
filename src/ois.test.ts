@@ -12,6 +12,7 @@ import {
   reservedParameterSchema,
   reservedParametersSchema,
   packageVersionCompatibleSemverSchema,
+  fixedParameterSchema,
 } from './ois';
 import { version as packageVersion } from '../package.json';
 
@@ -693,5 +694,16 @@ describe('API call skip validation', () => {
         },
       ])
     );
+  });
+});
+
+describe('fixedOperationParameters', () => {
+  it('allows objects as values', () => {
+    const valueWithObject = {
+      operationParameter: { in: 'query', name: 'params' },
+      value: ['finalized', false],
+    };
+
+    expect(() => fixedParameterSchema.parse(valueWithObject)).not.toThrow();
   });
 });
