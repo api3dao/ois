@@ -160,7 +160,7 @@ describe('parameter uniqueness', () => {
   it('fails if the same operation parameter is used in both "fixedOperationParameters" and "parameters"', () => {
     const ois = loadOisFixture();
     ois.endpoints[0].fixedOperationParameters.push({
-      operationParameter: ois.endpoints[0].parameters[0].operationParameter,
+      operationParameter: ois.endpoints[0].parameters[0].operationParameter!,
       value: '123',
     });
 
@@ -318,6 +318,16 @@ describe('apiSpecification parameters validation', () => {
         },
       ])
     );
+  });
+
+  it('allows endpoint "parameters" without an "operationParameter"', () => {
+    const ois = loadOisFixture();
+    ois.endpoints[0].parameters.push({
+      name: 'noOperationParameter',
+      default: 'EUR',
+    });
+
+    expect(() => oisSchema.parse(ois)).not.toThrow();
   });
 
   it('handles multiple endpoints for the same API specification', () => {
