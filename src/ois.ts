@@ -55,7 +55,7 @@ export const endpointParameterSchema = z
   .object({
     // Parameter name must not contain spaces
     name: z.string().regex(/^[^\s]+$/),
-    operationParameter: operationParameterSchema,
+    operationParameter: operationParameterSchema.optional(),
 
     // The following optional fields are defined by OAS. They are intended to provide more
     // clarity about a parameter and are ignored by Airnode
@@ -333,10 +333,12 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
   ois.endpoints.forEach((endpoint, oisIndex) => {
     const params = endpoint.parameters.map((p) => p.operationParameter);
     const fixedParams = endpoint.fixedOperationParameters.map((p) => p.operationParameter);
+
     const checkUniqueness = (section: 'parameters' | 'fixedOperationParameters') => {
       const paramsToCheck = section === 'parameters' ? params : fixedParams;
       paramsToCheck.forEach((param, paramIndex) => {
-        const count = paramsToCheck.filter((p) => p.in === param.in && p.name === param.name).length;
+        if (!param) return;
+        const count = paramsToCheck.filter((p) => p && p.in === param.in && p.name === param.name).length;
         if (count > 1) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -347,12 +349,12 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
       });
     };
 
-    // Check uniqueness in the respective sections
     checkUniqueness('parameters');
     checkUniqueness('fixedOperationParameters');
 
     // Check uniqueness across "parameters" and "fixedOperationParameters"
     params.forEach((param, paramIndex) => {
+      if (!param) return;
       const fixedParam = fixedParams.find((p) => p.in === param.in && p.name === param.name);
       if (fixedParam) {
         ctx.addIssue({
@@ -420,7 +422,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
           const allEndpointParams = [...endpoint.parameters, ...endpoint.fixedOperationParameters];
           const endpointParam = allEndpointParams.find(
             ({ operationParameter }) =>
-              operationParameter.in === apiParam.in && operationParameter.name === apiParam.name
+              operationParameter && operationParameter.in === apiParam.in && operationParameter.name === apiParam.name
           );
           if (!endpointParam) {
             ctx.addIssue({
@@ -455,6 +457,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
       // Ensure every parameter exist in "apiSpecification"
       parameters.forEach((endpointParam, endpointParamIndex) => {
         const { operationParameter } = endpointParam;
+        if (!operationParameter) return;
         const apiParam = apiSpec[operation.method]!.parameters.find(
           (p) => p.in === operationParameter.in && p.name === operationParameter.name
         );
