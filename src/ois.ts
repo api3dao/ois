@@ -343,7 +343,7 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: `Parameter "${param.name}" in "${param.in}" is used multiple times`,
-            path: ['ois', 'endpoints', oisIndex, section, paramIndex],
+            path: ['endpoints', oisIndex, section, paramIndex],
           });
         }
       });
@@ -360,14 +360,14 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Parameter "${param.name}" in "${param.in}" is used in both "parameters" and "fixedOperationParameters"`,
-          path: ['ois', 'endpoints', oisIndex, 'parameters', paramIndex],
+          path: ['endpoints', oisIndex, 'parameters', paramIndex],
         });
 
         // Add also an issue for the fixed parameter. This makes it easier for the user to find the offending parameter
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Parameter "${param.name}" in "${param.in}" is used in both "parameters" and "fixedOperationParameters"`,
-          path: ['ois', 'endpoints', oisIndex, 'fixedOperationParameters', fixedParams.indexOf(fixedParam)],
+          path: ['endpoints', oisIndex, 'fixedOperationParameters', fixedParams.indexOf(fixedParam)],
         });
       }
     });
@@ -388,7 +388,7 @@ const ensureApiCallSkipRequirements: SuperRefinement<{
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
-        path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
+        path: ['endpoints', endpoints.indexOf(endpoint)],
       });
     }
 
@@ -396,7 +396,7 @@ const ensureApiCallSkipRequirements: SuperRefinement<{
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
-        path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
+        path: ['endpoints', endpoints.indexOf(endpoint)],
       });
     }
   });
@@ -428,7 +428,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               message: `Parameter "${apiParam.name}" not found in "fixedOperationParameters" or "parameters"`,
-              path: ['ois', 'endpoints', endpoints.indexOf(endpoint)],
+              path: ['endpoints', endpoints.indexOf(endpoint)],
             });
           }
         });
@@ -450,7 +450,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
         return ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `No matching API specification found in "apiSpecifications" section`,
-          path: ['ois', 'endpoints', endpointIndex],
+          path: ['endpoints', endpointIndex],
         });
       }
 
@@ -466,7 +466,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: `No matching API specification parameter found in "apiSpecifications" section`,
-            path: ['ois', 'endpoints', endpointIndex, 'parameters', endpointParamIndex],
+            path: ['endpoints', endpointIndex, 'parameters', endpointParamIndex],
           });
         }
       });
@@ -483,7 +483,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               message: `No matching API specification parameter found in "apiSpecifications" section`,
-              path: ['ois', 'endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
+              path: ['endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
             });
           }
         }

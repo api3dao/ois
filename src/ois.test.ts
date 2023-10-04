@@ -126,12 +126,12 @@ describe('parameter uniqueness', () => {
         {
           code: 'custom',
           message: 'Parameter "from" in "query" is used multiple times',
-          path: ['ois', 'endpoints', 0, 'parameters', 0],
+          path: ['endpoints', 0, 'parameters', 0],
         },
         {
           code: 'custom',
           message: 'Parameter "from" in "query" is used multiple times',
-          path: ['ois', 'endpoints', 0, 'parameters', 3],
+          path: ['endpoints', 0, 'parameters', 3],
         },
       ])
     );
@@ -146,12 +146,12 @@ describe('parameter uniqueness', () => {
         {
           code: 'custom',
           message: 'Parameter "to" in "query" is used multiple times',
-          path: ['ois', 'endpoints', 0, 'fixedOperationParameters', 0],
+          path: ['endpoints', 0, 'fixedOperationParameters', 0],
         },
         {
           code: 'custom',
           message: 'Parameter "to" in "query" is used multiple times',
-          path: ['ois', 'endpoints', 0, 'fixedOperationParameters', 1],
+          path: ['endpoints', 0, 'fixedOperationParameters', 1],
         },
       ])
     );
@@ -169,12 +169,12 @@ describe('parameter uniqueness', () => {
         {
           code: 'custom',
           message: 'Parameter "from" in "query" is used in both "parameters" and "fixedOperationParameters"',
-          path: ['ois', 'endpoints', 0, 'parameters', 0],
+          path: ['endpoints', 0, 'parameters', 0],
         },
         {
           code: 'custom',
           message: 'Parameter "from" in "query" is used in both "parameters" and "fixedOperationParameters"',
-          path: ['ois', 'endpoints', 0, 'fixedOperationParameters', 1],
+          path: ['endpoints', 0, 'fixedOperationParameters', 1],
         },
       ])
     );
@@ -292,7 +292,7 @@ describe('apiSpecification parameters validation', () => {
         {
           code: 'custom',
           message: 'Parameter "non-existing-parameter" not found in "fixedOperationParameters" or "parameters"',
-          path: ['ois', 'endpoints', 0],
+          path: ['endpoints', 0],
         },
       ])
     );
@@ -314,7 +314,7 @@ describe('apiSpecification parameters validation', () => {
         {
           code: 'custom',
           message: 'No matching API specification parameter found in "apiSpecifications" section',
-          path: ['ois', 'endpoints', 0, 'parameters', 3],
+          path: ['endpoints', 0, 'parameters', 3],
         },
       ])
     );
@@ -343,12 +343,12 @@ describe('apiSpecification parameters validation', () => {
         {
           code: 'custom',
           message: 'Parameter "api-param-name" not found in "fixedOperationParameters" or "parameters"',
-          path: ['ois', 'endpoints', 0],
+          path: ['endpoints', 0],
         },
         {
           code: 'custom',
           message: 'Parameter "api-param-name" not found in "fixedOperationParameters" or "parameters"',
-          path: ['ois', 'endpoints', 1],
+          path: ['endpoints', 1],
         },
       ])
     );
@@ -369,7 +369,7 @@ describe('apiSpecification parameters validation', () => {
         {
           code: 'custom',
           message: 'No matching API specification parameter found in "apiSpecifications" section',
-          path: ['ois', 'endpoints', 0, 'parameters', 3],
+          path: ['endpoints', 0, 'parameters', 3],
         },
       ])
     );
@@ -609,7 +609,7 @@ describe('API call skip validation', () => {
         {
           code: 'custom',
           message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
-          path: ['ois', 'endpoints', 0],
+          path: ['endpoints', 0],
         },
       ])
     );
@@ -626,7 +626,7 @@ describe('API call skip validation', () => {
         {
           code: 'custom',
           message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
-          path: ['ois', 'endpoints', 0],
+          path: ['endpoints', 0],
         },
       ])
     );
@@ -700,7 +700,7 @@ describe('API call skip validation', () => {
         {
           code: 'custom',
           message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
-          path: ['ois', 'endpoints', 0],
+          path: ['endpoints', 0],
         },
       ])
     );
