@@ -13,6 +13,7 @@ import {
   reservedParametersSchema,
   packageVersionCompatibleSemverSchema,
   fixedParameterSchema,
+  endpointSchema,
 } from './ois';
 import { version as packageVersion } from '../package.json';
 
@@ -715,5 +716,71 @@ describe('fixedOperationParameters', () => {
     };
 
     expect(() => fixedParameterSchema.parse(valueWithObject)).not.toThrow();
+  });
+});
+
+describe('processing specification', () => {
+  it('allows pre-processing and post-processing specifications with different version', () => {
+    const endpoint1 = { ...loadOisFixture().endpoints[0] };
+    endpoint1.preProcessingSpecifications = [
+      {
+        environment: 'Node',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
+    ];
+    endpoint1.postProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: '(payload) => payload;',
+    };
+    const endpoint2 = { ...loadOisFixture().endpoints[0] };
+    endpoint2.preProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: '(payload) => payload;',
+    };
+    endpoint2.postProcessingSpecifications = [
+      {
+        environment: 'Node',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
+    ];
+
+    expect(() => endpointSchema.parse(endpoint1)).not.toThrow();
+    expect(() => endpointSchema.parse(endpoint2)).not.toThrow();
+  });
+
+  it('throws when conflicting processing specifications are defined', () => {
+    const endpoint1 = { ...loadOisFixture().endpoints[0] };
+    endpoint1.preProcessingSpecifications = [
+      {
+        environment: 'Node',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
+    ];
+    endpoint1.preProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: '(payload) => payload;',
+    };
+    const endpoint2 = { ...loadOisFixture().endpoints[0] };
+    endpoint2.postProcessingSpecifications = [
+      {
+        environment: 'Node',
+        timeoutMs: 5000,
+        value: 'output = input;',
+      },
+    ];
+    endpoint2.postProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: '(payload) => payload;',
+    };
+
+    expect(() => endpointSchema.parse(endpoint1)).toThrow();
+    expect(() => endpointSchema.parse(endpoint2)).toThrow();
   });
 });
