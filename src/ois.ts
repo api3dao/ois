@@ -276,6 +276,14 @@ export const processingSpecificationSchema = z
   })
   .strict();
 
+export const processingSpecificationSchemaV2 = z
+  .object({
+    environment: z.literal('Node'),
+    value: z.string(),
+    timeoutMs: nonNegativeIntSchema,
+  })
+  .strict();
+
 const ensureUniqueEndpointParameterNames: SuperRefinement<EndpointParameter[]> = (parameters, ctx) => {
   const groups = Object.values(groupBy(parameters, 'name'));
   const duplicates = groups.filter((group) => group.length > 1).flatMap((group) => group.map((p) => p.name));
@@ -320,12 +328,44 @@ export const endpointSchema = z
     preProcessingSpecifications: z.array(processingSpecificationSchema).optional(),
     postProcessingSpecifications: z.array(processingSpecificationSchema).optional(),
 
+    // Post-processing only supported processing value, but there are use cases for processing timestamp as well. With
+    // the original processing specification, users needed to assign processed value to a special output variable and
+    // the schema supported multiple snippets that are composed together which is not necessary. For further information
+    // see: https://github.com/api3dao/commons/issues/27.
+    //
+    // A new processing implementation is created that addresses all the previously mentioned issues. The schemas remain
+    // optional, for the same reasons as in the original implementation.
+    preProcessingSpecificationV2: processingSpecificationSchemaV2.optional(),
+    postProcessingSpecificationV2: processingSpecificationSchemaV2.optional(),
+
     // The following fields are ignored by Airnode
     description: z.string().optional(),
     externalDocs: z.string().optional(),
     summary: z.string().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((endpoint, ctx) => {
+    const {
+      preProcessingSpecificationV2,
+      preProcessingSpecifications,
+      postProcessingSpecificationV2,
+      postProcessingSpecifications,
+    } = endpoint;
+
+    if (preProcessingSpecificationV2 && preProcessingSpecifications) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Only one of "preProcessingSpecificationV2" and "preProcessingSpecifications" can be defined',
+      });
+    }
+
+    if (postProcessingSpecificationV2 && postProcessingSpecifications) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Only one of "postProcessingSpecificationV2" and "postProcessingSpecifications" can be defined',
+      });
+    }
+  });
 
 const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
   endpoints: Endpoint[];
