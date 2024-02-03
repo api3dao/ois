@@ -10,3 +10,4 @@ coverage/
 # IDE specific files
 .idea
 .vscode
+.DS_Store
