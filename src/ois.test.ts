@@ -609,7 +609,7 @@ describe('API call skip validation', () => {
       new ZodError([
         {
           code: 'custom',
-          message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+          message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
           path: ['endpoints', 0],
         },
       ])
@@ -626,7 +626,7 @@ describe('API call skip validation', () => {
       new ZodError([
         {
           code: 'custom',
-          message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+          message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
           path: ['endpoints', 0],
         },
       ])
