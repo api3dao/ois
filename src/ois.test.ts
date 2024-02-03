@@ -706,6 +706,32 @@ describe('API call skip validation', () => {
       ])
     );
   });
+
+  it('allows skipping API call with pre-processing v2', () => {
+    const ois = loadOisFixture();
+    ois.endpoints[0].operation = undefined;
+    ois.endpoints[0].fixedOperationParameters = [];
+    ois.endpoints[0].preProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: 'output = input;',
+    };
+
+    expect(() => oisSchema.parse(ois)).not.toThrow();
+  });
+
+  it('allows skipping API call with post-processing v2', () => {
+    const ois = loadOisFixture();
+    ois.endpoints[0].operation = undefined;
+    ois.endpoints[0].fixedOperationParameters = [];
+    ois.endpoints[0].postProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: 'output = input;',
+    };
+
+    expect(() => oisSchema.parse(ois)).not.toThrow();
+  });
 });
 
 describe('fixedOperationParameters', () => {
