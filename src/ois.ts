@@ -423,11 +423,13 @@ const ensureApiCallSkipRequirements: SuperRefinement<{
       !endpoint.operation &&
       endpoint.fixedOperationParameters.length === 0 &&
       (!endpoint.postProcessingSpecifications || endpoint.postProcessingSpecifications?.length === 0) &&
-      (!endpoint.preProcessingSpecifications || endpoint.preProcessingSpecifications?.length === 0)
+      (!endpoint.preProcessingSpecifications || endpoint.preProcessingSpecifications?.length === 0) &&
+      !endpoint.preProcessingSpecificationV2 &&
+      !endpoint.postProcessingSpecificationV2
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+        message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
         path: ['endpoints', endpoints.indexOf(endpoint)],
       });
     }

@@ -609,7 +609,7 @@ describe('API call skip validation', () => {
       new ZodError([
         {
           code: 'custom',
-          message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+          message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
           path: ['endpoints', 0],
         },
       ])
@@ -626,7 +626,7 @@ describe('API call skip validation', () => {
       new ZodError([
         {
           code: 'custom',
-          message: `"postProcessingSpecifications" or "preProcessingSpecifications" must not be empty or undefined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+          message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
           path: ['endpoints', 0],
         },
       ])
@@ -705,6 +705,32 @@ describe('API call skip validation', () => {
         },
       ])
     );
+  });
+
+  it('allows skipping API call with pre-processing v2', () => {
+    const ois = loadOisFixture();
+    ois.endpoints[0].operation = undefined;
+    ois.endpoints[0].fixedOperationParameters = [];
+    ois.endpoints[0].preProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: 'output = input;',
+    };
+
+    expect(() => oisSchema.parse(ois)).not.toThrow();
+  });
+
+  it('allows skipping API call with post-processing v2', () => {
+    const ois = loadOisFixture();
+    ois.endpoints[0].operation = undefined;
+    ois.endpoints[0].fixedOperationParameters = [];
+    ois.endpoints[0].postProcessingSpecificationV2 = {
+      environment: 'Node',
+      timeoutMs: 5000,
+      value: 'output = input;',
+    };
+
+    expect(() => oisSchema.parse(ois)).not.toThrow();
   });
 });
 

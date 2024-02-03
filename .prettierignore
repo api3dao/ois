@@ -7,5 +7,7 @@
 # Test files
 coverage/
 
-# Jetbrains
+# IDE specific files
 .idea
+.vscode
+.DS_Store
