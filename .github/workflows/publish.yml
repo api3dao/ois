@@ -32,6 +32,10 @@ jobs:
           HUSKY: 0
       - run: pnpm build
       - run: pnpm test
+      - name: Ensure main is present
+        run: |
+          git checkout main
+          git checkout release
       - name: Prep commit message
         run: |
           echo "NEW_VERSION=$(pnpm changeset status --output=release.json > /dev/null && jq -r '.releases[0].newVersion' release.json && rm release.json)" >> "$GITHUB_ENV"
