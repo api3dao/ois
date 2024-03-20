@@ -8,7 +8,7 @@ You can find the documentation for OIS in the [docs](https://docs.api3.org/refer
 
 To install this package run either:
 
-`yarn add @api3/ois`
+`pnpm add @api3/ois`
 
 or if you use npm:
 
@@ -59,12 +59,17 @@ An example of a valid OIS can be found [here](https://github.com/api3dao/ois/blo
 
 ### Release
 
-To release a new version follow these steps:
+Releasing is facilitated by GitHub Actions using [changesets/action](https://github.com/changesets/action). To release a
+new version follow these steps:
 
-1. `git checkout main && git pull` - ensure you are on a "main" branch with latest changes
-2. `yarn version` - choose "x.y.z" as the version to be released
-3. `git show` - verify the changes of the version commit
-4. `yarn build` - only build the package after the "yarn version" command so the bundled "package.json" uses the updated
-   version
-5. `yarn publish --access public`
-6. `git push --follow-tags` - to push the commits to a "main" branch
+1. Assuming desired changes are present on `main` with changesets, create a GitHub PR to the `release` branch from
+   `main`.
+2. Merge the PR to `release` **using a merge commit**.
+3. The [publish Action workflow](./.github/workflows/publish.yml) will create a release PR.
+4. Review the release PR and merge it to `release` using **squash and merge**.
+5. The [publish Action workflow](./.github/workflows/publish.yml) will publish a GitHub release and publish the package
+   to npm with provenance. It will also create a PR for merging the `release` branch back to `main`.
+6. Merge the PR to `main` from `release` **using a merge commit**.
+
+Note that development can continue on `main` during the release process, or in other words, `main` does not need to be
+protected.
