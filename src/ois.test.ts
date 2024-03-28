@@ -714,7 +714,7 @@ describe('API call skip validation', () => {
     ois.endpoints[0].preProcessingSpecificationV2 = {
       environment: 'Node',
       timeoutMs: 5000,
-      value: '({ response }) => { return { response: Math.round(Math.random() * 1000) } }',
+      value: "({ endpointParameters }) => { return { endpointParameters: {...endpointParameters, from: 'ETH'} }; }",
     };
 
     expect(() => oisSchema.parse(ois)).not.toThrow();
