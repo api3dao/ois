@@ -6,6 +6,7 @@
 
 # Test files
 coverage/
+.eslintcache
 
 # IDE specific files
 .idea

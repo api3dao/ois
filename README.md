@@ -6,7 +6,7 @@ You can find the documentation for OIS in the [docs](https://docs.api3.org/refer
 
 ## Installation
 
-To install this package run either:
+To install [this package](https://www.npmjs.com/package/@api3/ois) run either:
 
 `pnpm add @api3/ois`
 
