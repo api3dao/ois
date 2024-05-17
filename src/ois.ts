@@ -542,8 +542,8 @@ export const semverSchema = z.string().refine((value) => {
 }, 'Expected semantic versioning "x.y.z"');
 
 export const packageVersionCompatibleSemverSchema = semverSchema.refine((semver) => {
-  const [oisMajor, oisMinor, _oisPatch] = semver.split('.');
-  const [packageMajor, packageMinor, _packagePatch] = packageVersion.split('.');
+  const [oisMajor, oisMinor] = semver.split('.');
+  const [packageMajor, packageMinor] = packageVersion.split('.');
   return oisMajor === packageMajor && oisMinor === packageMinor;
 }, `oisFormat major.minor version must match major.minor version of "${packageVersion}"`);
 

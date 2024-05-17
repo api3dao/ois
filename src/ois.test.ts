@@ -45,6 +45,7 @@ it(`doesn't allow extraneous properties`, () => {
 
 it('handles discriminated union error nicely', () => {
   const ois = loadOisFixture();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete (ois.apiSpecifications.components.securitySchemes.coinlayerSecurityScheme as any).name;
 
   expect(() => oisSchema.parse(ois)).toThrow(
@@ -140,6 +141,7 @@ describe('parameter uniqueness', () => {
 
   it(`fails if the same operation parameter is used in "fixedOperationParameters"`, () => {
     const ois = loadOisFixture();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ois.endpoints[0].fixedOperationParameters.push(ois.endpoints[0].fixedOperationParameters[0] as any);
 
     expect(() => oisSchema.parse(ois)).toThrow(

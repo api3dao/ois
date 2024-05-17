@@ -1,0 +1,4 @@
+.gitignore
+coverage/
+jest.config.ts
+dist/
