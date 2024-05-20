@@ -32,7 +32,7 @@
     "update-fixtures": "ts-node --transpileOnly ./dev-scripts/update-fixtures.ts"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.1",
+    "@changesets/cli": "^2.27.3",
     "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.1",
     "@types/node": "^20.12.11",
