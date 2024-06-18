@@ -20,5 +20,6 @@
     "enabled": false
   },
   "reviewers": ["dcroote", "andreogle"],
+  "minimumReleaseAge": "5 days",
   "dependencyDashboard": false
 }
