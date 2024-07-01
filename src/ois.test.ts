@@ -1,12 +1,16 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { cloneDeep } from 'lodash';
 import { ZodError } from 'zod';
-import cloneDeep from 'lodash/cloneDeep';
+
+import { version as packageVersion } from '../package.json';
+
 import {
   oisSchema,
   operationParameterSchema,
   endpointParameterSchema,
-  OIS,
+  type OIS,
   pathNameSchema,
   semverSchema,
   reservedParameterSchema,
@@ -15,18 +19,17 @@ import {
   fixedParameterSchema,
   endpointSchema,
 } from './ois';
-import { version as packageVersion } from '../package.json';
 
 const loadOisFixture = (): OIS =>
   // This OIS is guaranteed to be valid because there is a test for it's validity below
   JSON.parse(readFileSync(join(__dirname, '../test/fixtures/ois.json')).toString());
 
-it('successfully parses OIS spec', () => {
+test('successfully parses OIS spec', () => {
   const ois = loadOisFixture();
   expect(() => oisSchema.parse(ois)).not.toThrow();
 });
 
-it(`doesn't allow extraneous properties`, () => {
+test(`doesn't allow extraneous properties`, () => {
   const ois = loadOisFixture();
   expect(() => oisSchema.parse(ois)).not.toThrow();
 
@@ -43,7 +46,7 @@ it(`doesn't allow extraneous properties`, () => {
   );
 });
 
-it('handles discriminated union error nicely', () => {
+test('handles discriminated union error nicely', () => {
   const ois = loadOisFixture();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete (ois.apiSpecifications.components.securitySchemes.coinlayerSecurityScheme as any).name;
@@ -212,7 +215,7 @@ describe('parameter uniqueness', () => {
   });
 });
 
-it('verifies parameter interpolation in "apiSpecification.paths"', () => {
+test('verifies parameter interpolation in "apiSpecification.paths"', () => {
   const ois = loadOisFixture();
   ois.apiSpecifications.paths['/someEndpoint/{id1}/{id2}'] = {
     get: {
@@ -258,16 +261,15 @@ it('verifies parameter interpolation in "apiSpecification.paths"', () => {
   );
 });
 
-it('fails if apiSpecifications.security.<securitySchemeName> is not defined in apiSpecifications.components.<securitySchemeName>', () => {
+test('fails if apiSpecifications.security.<securitySchemeName> is not defined in apiSpecifications.components.<securitySchemeName>', () => {
   const invalidSecuritySchemeName = 'INVALID_SECURITY_SCHEME_NAME';
   const ois = loadOisFixture();
   const invalidOis = {
     ...ois,
-    ...{
-      apiSpecifications: {
-        ...ois.apiSpecifications,
-        security: { ...ois.apiSpecifications.security, [invalidSecuritySchemeName]: [] },
-      },
+
+    apiSpecifications: {
+      ...ois.apiSpecifications,
+      security: { ...ois.apiSpecifications.security, [invalidSecuritySchemeName]: [] },
     },
   };
 
@@ -401,7 +403,7 @@ describe('apiSpecification parameters validation', () => {
   });
 });
 
-it('validates path name', () => {
+test('validates path name', () => {
   expect(() => pathNameSchema.parse('my-path')).toThrow(
     new ZodError([
       {
@@ -429,7 +431,7 @@ it('validates path name', () => {
   expect(() => pathNameSchema.parse('/')).not.toThrow();
 });
 
-it('validates semantic versioning', () => {
+test('validates semantic versioning', () => {
   expect(() => semverSchema.parse('1.0')).toThrow(
     new ZodError([
       {
@@ -474,9 +476,9 @@ it('validates semantic versioning', () => {
 describe('oisFormat version', () => {
   const [packageMajor, packageMinor, packagePatch] = packageVersion.split('.');
 
-  const differentPatch = `${packageMajor}.${packageMinor}.${parseInt(packagePatch) + 1}`;
-  const differentMinor = `${packageMajor}.${parseInt(packageMinor) + 1}.${packagePatch}`;
-  const differentMajor = `${parseInt(packageMajor) + 1}.${packageMinor}.${packagePatch}`;
+  const differentPatch = `${packageMajor}.${packageMinor}.${Number.parseInt(packagePatch, 10) + 1}`;
+  const differentMinor = `${packageMajor}.${Number.parseInt(packageMinor, 10) + 1}.${packagePatch}`;
+  const differentMajor = `${Number.parseInt(packageMajor, 10) + 1}.${packageMinor}.${packagePatch}`;
 
   it('validates packageVersion conforms to semver', () => {
     expect(() => semverSchema.parse(packageVersion)).not.toThrow();
@@ -572,6 +574,7 @@ describe('reservedParameter validation', () => {
     expect(() => reservedParametersSchema.parse([{ name: '_type', fixed: 'int256' }])).not.toThrow();
   });
 
+  // eslint-disable-next-line jest/require-hook
   ['_minConfirmations', '_gasPrice'].forEach((reservedParam) => {
     it(`allows missing value or non-negative integer strings for ${reservedParam}`, () => {
       const validIntStrDefault = { name: reservedParam, default: '3' };
@@ -600,7 +603,7 @@ describe('reservedParameter validation', () => {
   });
 });
 
-describe('API call skip validation', () => {
+describe('skip API call validation', () => {
   it(`fails if both "endpoint[n].preProcessingSpecifications" and "endpoint[n].postProcessingSpecifications" are undefined when "endpoint[n].operation" is undefined and "endpoint[n].fixedOperationParameters" is empty array.`, () => {
     const invalidOis = loadOisFixture();
     invalidOis.endpoints[0].operation = undefined;
@@ -808,7 +811,24 @@ describe('processing specification', () => {
       value: '(payload) => payload;',
     };
 
-    expect(() => endpointSchema.parse(endpoint1)).toThrow();
-    expect(() => endpointSchema.parse(endpoint2)).toThrow();
+    expect(() => endpointSchema.parse(endpoint1)).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: 'Only one of "preProcessingSpecificationV2" and "preProcessingSpecifications" can be defined',
+          path: [],
+        },
+      ])
+    );
+
+    expect(() => endpointSchema.parse(endpoint2)).toThrow(
+      new ZodError([
+        {
+          code: 'custom',
+          message: 'Only one of "postProcessingSpecificationV2" and "postProcessingSpecifications" can be defined',
+          path: [],
+        },
+      ])
+    );
   });
 });
