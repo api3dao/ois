@@ -1,11 +1,9 @@
-import forEach from 'lodash/forEach';
-import trimEnd from 'lodash/trimEnd';
-import trimStart from 'lodash/trimStart';
-import groupBy from 'lodash/groupBy';
-import find from 'lodash/find';
-import { SuperRefinement, z } from 'zod';
-import { SchemaType } from './types';
+import { find, forEach, groupBy, trimEnd, trimStart } from 'lodash';
+import { type SuperRefinement, z } from 'zod';
+
 import { version as packageVersion } from '../package.json';
+
+import { type SchemaType } from './types';
 
 function removeBraces(value: string) {
   return trimEnd(trimStart(value, '{'), '}');
@@ -42,7 +40,7 @@ export const fixedParameterSchema = z
 export const methodSchema = z.union([z.literal('get'), z.literal('post')]);
 
 // Path name must start wih "/" and must not contain space character
-export const pathNameSchema = z.string().regex(/^\/[^\s]*$/);
+export const pathNameSchema = z.string().regex(/^\/\S*$/);
 
 export const endpointOperationSchema = z
   .object({
@@ -54,7 +52,7 @@ export const endpointOperationSchema = z
 export const endpointParameterSchema = z
   .object({
     // Parameter name must not contain spaces
-    name: z.string().regex(/^[^\s]+$/),
+    name: z.string().regex(/^\S+$/),
     operationParameter: operationParameterSchema.optional(),
 
     // The following optional fields are defined by OAS. They are intended to provide more
@@ -97,14 +95,14 @@ export const reservedParameterSchema = z
   }, 'Reserved parameter must use at most one of "default" and "fixed" properties')
   .superRefine((param, ctx) => {
     // Default or fixed, or neither, may be present as validated by refine above
-    const val = param.default ? param.default : param.fixed;
-    const name = param.name;
+    const val = param.default ?? param.fixed;
+    const { name } = param;
 
     // Validate value if present
     if (
       (name === '_minConfirmations' || name === '_gasPrice') &&
       val &&
-      !nonNegativeIntSchema.safeParse(parseInt(val)).success
+      !nonNegativeIntSchema.safeParse(Number.parseInt(val, 10)).success
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -181,10 +179,10 @@ export const pathSchema = z.record(httpStatusCodes, operationSchema);
 const ensurePathParametersExist: SuperRefinement<Record<string, SchemaType<typeof pathSchema>>> = (paths, ctx) => {
   forEach(paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
-      const parameters = paramData!.parameters;
+      const { parameters } = paramData!;
       // Match on anything in the path that is braces
       // i.e. The path /users/{id}/{action} will match ['{id}', '{action}']
-      const regex = /\{([^}]+)\}/g;
+      const regex = /{[^}]+}/g;
       const matches = rawPath.match(regex)?.map(removeBraces) ?? [];
 
       // Check that all path parameters are defined
@@ -197,7 +195,7 @@ const ensurePathParametersExist: SuperRefinement<Record<string, SchemaType<typeo
             path: [rawPath, httpMethod, 'parameters'],
           });
         }
-      }, rawPath);
+      });
 
       // Check that all parameters are used
       parameters.forEach((p, index) => {
@@ -219,14 +217,14 @@ const ensureUniqueApiSpecificationParameters: SuperRefinement<Record<string, Sch
 ) => {
   forEach(paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
-      const parameters = paramData!.parameters;
+      const { parameters } = paramData!;
 
       const getGroupId = (param: OperationParameter) => param.in + param.name;
       const groups = Object.values(groupBy(parameters, getGroupId));
-      const duplicates = groups.filter((group) => group.length > 1).flat();
+      const duplicates = new Set(groups.filter((group) => group.length > 1).flat());
 
       parameters.forEach((parameter, index) => {
-        if (duplicates.includes(parameter)) {
+        if (duplicates.has(parameter)) {
           const { in: location, name } = parameter;
 
           ctx.addIssue({
@@ -286,11 +284,11 @@ export const processingSpecificationSchemaV2 = z
 
 const ensureUniqueEndpointParameterNames: SuperRefinement<EndpointParameter[]> = (parameters, ctx) => {
   const groups = Object.values(groupBy(parameters, 'name'));
-  const duplicates = groups.filter((group) => group.length > 1).flatMap((group) => group.map((p) => p.name));
+  const duplicates = new Set(groups.filter((group) => group.length > 1).flatMap((group) => group.map((p) => p.name)));
 
   parameters.forEach((parameter, index) => {
     const { name } = parameter;
-    if (duplicates.includes(name)) {
+    if (duplicates.has(name)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `Parameter names must be unique, but parameter "${name}" is used multiple times`,
@@ -326,7 +324,7 @@ export const endpointSchema = z
     // Processing is and advanced use case that needs to be used with special care. For this reason,
     // we are defining the processing specification as optional fields.
     preProcessingSpecifications: z.array(processingSpecificationSchema).optional(),
-    postProcessingSpecifications: z.array(processingSpecificationSchema).optional(),
+    postProcessingSpecifications: z.array(processingSpecificationSchema).optional(), // eslint-disable-line sort-keys
 
     // Post-processing only supported processing value, but there are use cases for processing timestamp as well. With
     // the original processing specification, users needed to assign processed value to a special output variable and
@@ -336,7 +334,7 @@ export const endpointSchema = z
     // A new processing implementation is created that addresses all the previously mentioned issues. The schemas remain
     // optional, for the same reasons as in the original implementation.
     preProcessingSpecificationV2: processingSpecificationSchemaV2.optional(),
-    postProcessingSpecificationV2: processingSpecificationSchemaV2.optional(),
+    postProcessingSpecificationV2: processingSpecificationSchemaV2.optional(), // eslint-disable-line sort-keys
 
     // The following fields are ignored by Airnode
     description: z.string().optional(),
@@ -434,7 +432,7 @@ const ensureApiCallSkipRequirements: SuperRefinement<{
       });
     }
 
-    if (!endpoint.operation && endpoint.fixedOperationParameters.length !== 0) {
+    if (!endpoint.operation && endpoint.fixedOperationParameters.length > 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
@@ -457,7 +455,7 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
         if (!operation) return false;
         return operation.method === httpMethod && operation.path === rawPath;
       });
-      if (!apiEndpoints.length) return; // Missing endpoint for apiSpecification should only be a warning
+      if (apiEndpoints.length === 0) return; // Missing endpoint for apiSpecification should only be a warning
 
       apiEndpoints.forEach((endpoint) => {
         paramData!.parameters.forEach((apiParam) => {
@@ -489,11 +487,12 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
         return !!find(pathData, (_, httpMethod) => operation.method === httpMethod);
       });
       if (!apiSpec) {
-        return ctx.addIssue({
+        ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `No matching API specification found in "apiSpecifications" section`,
           path: ['endpoints', endpointIndex],
         });
+        return;
       }
 
       // Ensure every parameter exist in "apiSpecification"
@@ -521,13 +520,11 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
         );
 
         if (!apiParam) {
-          if (!apiParam) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `No matching API specification parameter found in "apiSpecifications" section`,
-              path: ['endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
-            });
-          }
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `No matching API specification parameter found in "apiSpecifications" section`,
+            path: ['endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
+          });
         }
       });
     }
@@ -538,7 +535,7 @@ export const semverSchema = z.string().refine((value) => {
   const semver = value.split('.');
   if (semver.length !== 3) return false;
 
-  return !semver.find((part) => /^\d+$/.test(part) === false);
+  return !semver.some((part) => /^\d+$/.test(part) === false);
 }, 'Expected semantic versioning "x.y.z"');
 
 export const packageVersionCompatibleSemverSchema = semverSchema.refine((semver) => {
@@ -551,7 +548,7 @@ export const oisSchema = z
   .object({
     oisFormat: packageVersionCompatibleSemverSchema,
     // Limit the title to 64 characters
-    title: z.string().regex(/^[a-zA-Z0-9-_\s]{1,64}$/),
+    title: z.string().regex(/^[\s\w-]{1,64}$/),
     version: semverSchema,
     apiSpecifications: apiSpecificationSchema,
     endpoints: z.array(endpointSchema),

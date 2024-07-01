@@ -1,4 +1,4 @@
-import { z, ZodFirstPartySchemaTypes } from 'zod';
+import { type z, type ZodFirstPartySchemaTypes } from 'zod';
 
 export type SchemaType<Schema extends ZodFirstPartySchemaTypes> = z.infer<Schema>;
 
