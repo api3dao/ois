@@ -32,12 +32,12 @@
     "update-fixtures": "ts-node --transpileOnly ./dev-scripts/update-fixtures.ts"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.5",
+    "@changesets/cli": "^2.27.6",
     "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.5",
-    "@types/node": "^20.14.7",
-    "@typescript-eslint/eslint-plugin": "^7.13.1",
-    "@typescript-eslint/parser": "^7.13.1",
+    "@types/node": "^20.14.9",
+    "@typescript-eslint/eslint-plugin": "^7.14.1",
+    "@typescript-eslint/parser": "^7.14.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.0.11",
