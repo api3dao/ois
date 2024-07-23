@@ -224,15 +224,14 @@ const ensureUniqueApiSpecificationParameters: SuperRefinement<Record<string, Sch
       const duplicates = new Set(groups.filter((group) => group.length > 1).flat());
 
       parameters.forEach((parameter, index) => {
-        if (duplicates.has(parameter)) {
-          const { in: location, name } = parameter;
+        if (!duplicates.has(parameter)) return;
 
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Parameter "${name}" in "${location}" is used multiple times`,
-            path: [rawPath, httpMethod, 'parameters', index],
-          });
-        }
+        const { in: location, name } = parameter;
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Parameter "${name}" in "${location}" is used multiple times`,
+          path: [rawPath, httpMethod, 'parameters', index],
+        });
       });
     });
   });
@@ -478,56 +477,55 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
 
   // Ensure every endpoint parameter references parameter from "apiSpecification.paths"
   endpoints.forEach((endpoint, endpointIndex) => {
-    if (endpoint.operation) {
-      const { operation, parameters, fixedOperationParameters } = endpoint;
+    if (!endpoint.operation) return;
+    const { operation, parameters, fixedOperationParameters } = endpoint;
 
-      const apiSpec = find(apiSpecifications.paths, (pathData, path) => {
-        if (operation.path !== path) return false;
+    const apiSpec = find(apiSpecifications.paths, (pathData, path) => {
+      if (operation.path !== path) return false;
 
-        return !!find(pathData, (_, httpMethod) => operation.method === httpMethod);
+      return !!find(pathData, (_, httpMethod) => operation.method === httpMethod);
+    });
+    if (!apiSpec) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `No matching API specification found in "apiSpecifications" section`,
+        path: ['endpoints', endpointIndex],
       });
-      if (!apiSpec) {
+      return;
+    }
+
+    // Ensure every parameter exist in "apiSpecification"
+    parameters.forEach((endpointParam, endpointParamIndex) => {
+      const { operationParameter } = endpointParam;
+      if (!operationParameter) return;
+      const apiParam = apiSpec[operation.method]!.parameters.find(
+        (p) => p.in === operationParameter.in && p.name === operationParameter.name
+      );
+
+      if (!apiParam) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `No matching API specification found in "apiSpecifications" section`,
-          path: ['endpoints', endpointIndex],
+          message: `No matching API specification parameter found in "apiSpecifications" section`,
+          path: ['endpoints', endpointIndex, 'parameters', endpointParamIndex],
         });
-        return;
       }
+    });
 
-      // Ensure every parameter exist in "apiSpecification"
-      parameters.forEach((endpointParam, endpointParamIndex) => {
-        const { operationParameter } = endpointParam;
-        if (!operationParameter) return;
-        const apiParam = apiSpec[operation.method]!.parameters.find(
-          (p) => p.in === operationParameter.in && p.name === operationParameter.name
-        );
+    // Ensure every fixed parameter exist in "apiSpecification"
+    fixedOperationParameters.forEach((endpointParam, endpointParamIndex) => {
+      const { operationParameter } = endpointParam;
+      const apiParam = apiSpec[operation.method]!.parameters.find(
+        (p) => p.in === operationParameter.in && p.name === operationParameter.name
+      );
 
-        if (!apiParam) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `No matching API specification parameter found in "apiSpecifications" section`,
-            path: ['endpoints', endpointIndex, 'parameters', endpointParamIndex],
-          });
-        }
-      });
-
-      // Ensure every fixed parameter exist in "apiSpecification"
-      fixedOperationParameters.forEach((endpointParam, endpointParamIndex) => {
-        const { operationParameter } = endpointParam;
-        const apiParam = apiSpec[operation.method]!.parameters.find(
-          (p) => p.in === operationParameter.in && p.name === operationParameter.name
-        );
-
-        if (!apiParam) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `No matching API specification parameter found in "apiSpecifications" section`,
-            path: ['endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
-          });
-        }
-      });
-    }
+      if (!apiParam) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `No matching API specification parameter found in "apiSpecifications" section`,
+          path: ['endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
+        });
+      }
+    });
   });
 };
 
