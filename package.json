@@ -32,12 +32,12 @@
     "update-fixtures": "ts-node --transpileOnly ./dev-scripts/update-fixtures.ts"
   },
   "devDependencies": {
-    "@api3/eslint-plugin-commons": "^2.0.0",
+    "@api3/eslint-plugin-commons": "^2.0.1",
     "@changesets/cli": "^2.27.7",
     "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.7",
-    "@types/node": "^20.14.12",
-    "husky": "^9.1.1",
+    "@types/node": "^20.14.13",
+    "husky": "^9.1.4",
     "jest": "^29.7.0",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
