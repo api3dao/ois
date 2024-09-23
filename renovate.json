@@ -19,7 +19,7 @@
   "lockFileMaintenance": {
     "enabled": false
   },
-  "reviewers": ["dcroote", "andreogle"],
+  "reviewers": ["dcroote"],
   "minimumReleaseAge": "5 days",
   "dependencyDashboard": false
 }
