@@ -22,8 +22,8 @@ importers:
         specifier: ^2.27.8
         version: 2.27.8
       '@types/jest':
-        specifier: ^29.5.12
-        version: 29.5.12
+        specifier: ^29.5.13
+        version: 29.5.13
       '@types/lodash':
         specifier: ^4.17.7
         version: 4.17.7
@@ -31,8 +31,8 @@ importers:
         specifier: ^20.16.5
         version: 20.16.5
       husky:
-        specifier: ^9.1.5
-        version: 9.1.5
+        specifier: ^9.1.6
+        version: 9.1.6
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.16.5)(ts-node@10.9.2(@types/node@20.16.5)(typescript@5.6.2))
@@ -535,8 +535,8 @@ packages:
   '@types/istanbul-reports@3.0.4':
     resolution: {integrity: sha512-pk2B1NWalF9toCRu6gjBzR69syFjP4Od8WRAX+0mmf9lAjCRicLOWc+ZrxZHx/0XRjotgkF9t6iaMJ+aXcOdZQ==}
 
-  '@types/jest@29.5.12':
-    resolution: {integrity: sha512-eDC8bTvT/QhYdxJAulQikueigY5AsdBRH2yDKW3yveW7svY3+DzN84/2NUgkw10RTiJbWqZrTtoGVdYlvFJdLw==}
+  '@types/jest@29.5.13':
+    resolution: {integrity: sha512-wd+MVEZCHt23V0/L642O5APvspWply/rGY5BcW4SUETo2UzPU3Z26qr8jC2qxpimI2jjx9h7+2cj2FwIr01bXg==}
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
@@ -1611,8 +1611,8 @@ packages:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
 
-  husky@9.1.5:
-    resolution: {integrity: sha512-rowAVRUBfI0b4+niA4SJMhfQwc107VLkBUgEYYAOQAbqDCnra1nYh83hF/MDmhYs9t9n1E3DuKOrs2LYNC+0Ag==}
+  husky@9.1.6:
+    resolution: {integrity: sha512-sqbjZKK7kf44hfdE94EoX8MZNk0n7HeW37O4YrVGCF4wzgQjp+akPAkfUK5LZ6KuR/6sqeAVuXHji+RzQgOn5A==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -3041,7 +3041,7 @@ snapshots:
 
   '@babel/highlight@7.23.4':
     dependencies:
-      '@babel/helper-validator-identifier': 7.22.20
+      '@babel/helper-validator-identifier': 7.24.7
       chalk: 2.4.2
       js-tokens: 4.0.0
 
@@ -3685,7 +3685,7 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-report': 3.0.3
 
-  '@types/jest@29.5.12':
+  '@types/jest@29.5.13':
     dependencies:
       expect: 29.7.0
       pretty-format: 29.7.0
@@ -5050,7 +5050,7 @@ snapshots:
 
   human-signals@2.1.0: {}
 
-  husky@9.1.5: {}
+  husky@9.1.6: {}
 
   iconv-lite@0.4.24:
     dependencies:
