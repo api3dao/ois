@@ -33,7 +33,7 @@
     "update-fixtures": "ts-node --transpileOnly ./dev-scripts/update-fixtures.ts"
   },
   "devDependencies": {
-    "@api3/eslint-plugin-commons": "^2.0.1",
+    "@api3/eslint-plugin-commons": "^3.0.0",
     "@changesets/cli": "^2.27.8",
     "@types/jest": "^29.5.13",
     "@types/lodash": "^4.17.9",
