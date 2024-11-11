@@ -2,7 +2,7 @@
 
 > OIS (or Oracle Integration Specifications) is a JSON object that describes an API specification
 
-You can find the documentation for OIS in the [docs](https://docs.api3.org/reference/ois/latest/).
+You can find the documentation for OIS in the [docs](https://airnode-docs.api3.org/reference/ois/latest/).
 
 ## Installation
 
