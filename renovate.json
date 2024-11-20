@@ -3,6 +3,11 @@
   "extends": ["config:base"],
   "packageRules": [
     {
+      "matchDepTypes": ["packageManager"],
+      "matchPackageNames": ["pnpm"],
+      "extends": ["schedule:quarterly"]
+    },
+    {
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "schedule": ["before 4am on Monday"],
