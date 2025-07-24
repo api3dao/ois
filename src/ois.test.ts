@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { cloneDeep } from 'lodash';
-import { ZodError } from 'zod';
 
 import { version as packageVersion } from '../package.json';
 
@@ -34,16 +33,14 @@ test(`doesn't allow extraneous properties`, () => {
   expect(() => oisSchema.parse(ois)).not.toThrow();
 
   const invalidOis = { ...ois, unknownProp: 'someValue' };
-  expect(() => oisSchema.parse(invalidOis)).toThrow(
-    new ZodError([
-      {
-        code: 'unrecognized_keys',
-        keys: ['unknownProp'],
-        path: [],
-        message: `Unrecognized key(s) in object: 'unknownProp'`,
-      },
-    ])
-  );
+  expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+    {
+      code: 'unrecognized_keys',
+      keys: ['unknownProp'],
+      path: [],
+      message: `Unrecognized key: "unknownProp"`,
+    },
+  ]);
 });
 
 test('handles discriminated union error nicely', () => {
@@ -51,44 +48,38 @@ test('handles discriminated union error nicely', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete (ois.apiSpecifications.components.securitySchemes.coinlayerSecurityScheme as any).name;
 
-  expect(() => oisSchema.parse(ois)).toThrow(
-    new ZodError([
-      {
-        code: 'invalid_type',
-        expected: 'string',
-        received: 'undefined',
-        path: ['apiSpecifications', 'components', 'securitySchemes', 'coinlayerSecurityScheme', 'name'],
-        message: 'Required',
-      },
-    ])
-  );
+  expect(oisSchema.safeParse(ois).error?.issues).toStrictEqual([
+    {
+      code: 'invalid_type',
+      expected: 'string',
+      path: ['apiSpecifications', 'components', 'securitySchemes', 'coinlayerSecurityScheme', 'name'],
+      message: 'Invalid input: expected string, received undefined',
+    },
+  ]);
 });
 
 describe('disallows reserved parameter name', () => {
   it('in operation parameters', () => {
-    expect(() => operationParameterSchema.parse({ in: 'header', name: '_type' })).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: '"_type" cannot be used because it is a name of a reserved parameter',
-          path: ['name'],
-        },
-      ])
-    );
+    expect(operationParameterSchema.safeParse({ in: 'header', name: '_type' }).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: '"_type" cannot be used because it is a name of a reserved parameter',
+        path: ['name'],
+      },
+    ]);
   });
 
   it('in parameters', () => {
-    expect(() =>
-      endpointParameterSchema.parse({ name: 'param', operationParameter: { in: 'header', name: '_type' } })
-    ).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: '"_type" cannot be used because it is a name of a reserved parameter',
-          path: ['operationParameter', 'name'],
-        },
-      ])
-    );
+    expect(
+      endpointParameterSchema.safeParse({ name: 'param', operationParameter: { in: 'header', name: '_type' } }).error
+        ?.issues
+    ).toStrictEqual([
+      {
+        code: 'custom',
+        message: '"_type" cannot be used because it is a name of a reserved parameter',
+        path: ['operationParameter', 'name'],
+      },
+    ]);
   });
 });
 
@@ -126,20 +117,18 @@ describe('parameter uniqueness', () => {
     const ois = loadOisFixture();
     ois.endpoints[0].parameters.push({ ...ois.endpoints[0].parameters[0], name: 'different-name' });
 
-    expect(() => oisSchema.parse(ois)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Parameter "from" in "query" is used multiple times',
-          path: ['endpoints', 0, 'parameters', 0],
-        },
-        {
-          code: 'custom',
-          message: 'Parameter "from" in "query" is used multiple times',
-          path: ['endpoints', 0, 'parameters', 3],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(ois).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Parameter "from" in "query" is used multiple times',
+        path: ['endpoints', 0, 'parameters', 0],
+      },
+      {
+        code: 'custom',
+        message: 'Parameter "from" in "query" is used multiple times',
+        path: ['endpoints', 0, 'parameters', 3],
+      },
+    ]);
   });
 
   it(`fails if the same operation parameter is used in "fixedOperationParameters"`, () => {
@@ -147,20 +136,18 @@ describe('parameter uniqueness', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ois.endpoints[0].fixedOperationParameters.push(ois.endpoints[0].fixedOperationParameters[0] as any);
 
-    expect(() => oisSchema.parse(ois)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Parameter "to" in "query" is used multiple times',
-          path: ['endpoints', 0, 'fixedOperationParameters', 0],
-        },
-        {
-          code: 'custom',
-          message: 'Parameter "to" in "query" is used multiple times',
-          path: ['endpoints', 0, 'fixedOperationParameters', 1],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(ois).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Parameter "to" in "query" is used multiple times',
+        path: ['endpoints', 0, 'fixedOperationParameters', 0],
+      },
+      {
+        code: 'custom',
+        message: 'Parameter "to" in "query" is used multiple times',
+        path: ['endpoints', 0, 'fixedOperationParameters', 1],
+      },
+    ]);
   });
 
   it('fails if the same operation parameter is used in both "fixedOperationParameters" and "parameters"', () => {
@@ -170,20 +157,18 @@ describe('parameter uniqueness', () => {
       value: '123',
     });
 
-    expect(() => oisSchema.parse(ois)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Parameter "from" in "query" is used in both "parameters" and "fixedOperationParameters"',
-          path: ['endpoints', 0, 'parameters', 0],
-        },
-        {
-          code: 'custom',
-          message: 'Parameter "from" in "query" is used in both "parameters" and "fixedOperationParameters"',
-          path: ['endpoints', 0, 'fixedOperationParameters', 1],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(ois).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Parameter "from" in "query" is used in both "parameters" and "fixedOperationParameters"',
+        path: ['endpoints', 0, 'parameters', 0],
+      },
+      {
+        code: 'custom',
+        message: 'Parameter "from" in "query" is used in both "parameters" and "fixedOperationParameters"',
+        path: ['endpoints', 0, 'fixedOperationParameters', 1],
+      },
+    ]);
   });
 
   it('fails if parameter names are not unique', () => {
@@ -198,20 +183,18 @@ describe('parameter uniqueness', () => {
       name: ois.endpoints[0].parameters[0].name,
     });
 
-    expect(() => oisSchema.parse(ois)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Parameter names must be unique, but parameter "from" is used multiple times',
-          path: ['endpoints', 0, 'parameters', 0],
-        },
-        {
-          code: 'custom',
-          message: 'Parameter names must be unique, but parameter "from" is used multiple times',
-          path: ['endpoints', 0, 'parameters', 3],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(ois).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Parameter names must be unique, but parameter "from" is used multiple times',
+        path: ['endpoints', 0, 'parameters', 0],
+      },
+      {
+        code: 'custom',
+        message: 'Parameter names must be unique, but parameter "from" is used multiple times',
+        path: ['endpoints', 0, 'parameters', 3],
+      },
+    ]);
   });
 });
 
@@ -240,25 +223,23 @@ test('verifies parameter interpolation in "apiSpecification.paths"', () => {
     },
   };
 
-  expect(() => oisSchema.parse(ois)).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: 'Path parameter "id2" is not found in "parameters"',
-        path: ['apiSpecifications', 'paths', '/someEndpoint/{id1}/{id2}', 'get', 'parameters'],
-      },
-      {
-        code: 'custom',
-        message: 'Path parameter "id1" is not found in "parameters"',
-        path: ['apiSpecifications', 'paths', '/someEndpoint/{id1}/{id2}', 'post', 'parameters'],
-      },
-      {
-        code: 'custom',
-        message: 'Parameter "id3" is not found in the URL path',
-        path: ['apiSpecifications', 'paths', '/someEndpoint/{id1}/{id2}', 'post', 'parameters', 1],
-      },
-    ])
-  );
+  expect(oisSchema.safeParse(ois).error?.issues).toStrictEqual([
+    {
+      code: 'custom',
+      message: 'Path parameter "id2" is not found in "parameters"',
+      path: ['apiSpecifications', 'paths', '/someEndpoint/{id1}/{id2}', 'get', 'parameters'],
+    },
+    {
+      code: 'custom',
+      message: 'Path parameter "id1" is not found in "parameters"',
+      path: ['apiSpecifications', 'paths', '/someEndpoint/{id1}/{id2}', 'post', 'parameters'],
+    },
+    {
+      code: 'custom',
+      message: 'Parameter "id3" is not found in the URL path',
+      path: ['apiSpecifications', 'paths', '/someEndpoint/{id1}/{id2}', 'post', 'parameters', 1],
+    },
+  ]);
 });
 
 test('fails if apiSpecifications.security.<securitySchemeName> is not defined in apiSpecifications.components.<securitySchemeName>', () => {
@@ -273,15 +254,13 @@ test('fails if apiSpecifications.security.<securitySchemeName> is not defined in
     },
   };
 
-  expect(() => oisSchema.parse(invalidOis)).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: `Security scheme "${invalidSecuritySchemeName}" is not defined in "components.securitySchemes"`,
-        path: ['apiSpecifications', 'security', 1],
-      },
-    ])
-  );
+  expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+    {
+      code: 'custom',
+      message: `Security scheme "${invalidSecuritySchemeName}" is not defined in "components.securitySchemes"`,
+      path: ['apiSpecifications', 'security', 1],
+    },
+  ]);
 });
 
 describe('apiSpecification parameters validation', () => {
@@ -292,15 +271,13 @@ describe('apiSpecification parameters validation', () => {
       name: 'non-existing-parameter',
     });
 
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Parameter "non-existing-parameter" not found in "fixedOperationParameters" or "parameters"',
-          path: ['endpoints', 0],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Parameter "non-existing-parameter" not found in "fixedOperationParameters" or "parameters"',
+        path: ['endpoints', 0],
+      },
+    ]);
   });
 
   it('"endpoint" parameter must reference parameter from "apiSpecification.paths"', () => {
@@ -314,15 +291,13 @@ describe('apiSpecification parameters validation', () => {
       },
     });
 
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'No matching API specification parameter found in "apiSpecifications" section',
-          path: ['endpoints', 0, 'parameters', 3],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'No matching API specification parameter found in "apiSpecifications" section',
+        path: ['endpoints', 0, 'parameters', 3],
+      },
+    ]);
   });
 
   it('allows endpoint "parameters" without an "operationParameter"', () => {
@@ -343,20 +318,18 @@ describe('apiSpecification parameters validation', () => {
       name: 'api-param-name',
     });
 
-    expect(() => oisSchema.parse(ois)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Parameter "api-param-name" not found in "fixedOperationParameters" or "parameters"',
-          path: ['endpoints', 0],
-        },
-        {
-          code: 'custom',
-          message: 'Parameter "api-param-name" not found in "fixedOperationParameters" or "parameters"',
-          path: ['endpoints', 1],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(ois).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Parameter "api-param-name" not found in "fixedOperationParameters" or "parameters"',
+        path: ['endpoints', 0],
+      },
+      {
+        code: 'custom',
+        message: 'Parameter "api-param-name" not found in "fixedOperationParameters" or "parameters"',
+        path: ['endpoints', 1],
+      },
+    ]);
   });
 
   it('fails when there is no matching API specification for endpoint', () => {
@@ -369,15 +342,13 @@ describe('apiSpecification parameters validation', () => {
       name: 'param-name',
     });
 
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'No matching API specification parameter found in "apiSpecifications" section',
-          path: ['endpoints', 0, 'parameters', 3],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'No matching API specification parameter found in "apiSpecifications" section',
+        path: ['endpoints', 0, 'parameters', 3],
+      },
+    ]);
   });
 
   it('fails when there are multiple API specification parameters', () => {
@@ -386,45 +357,43 @@ describe('apiSpecification parameters validation', () => {
       invalidOis.apiSpecifications.paths['/convert'].get!.parameters[0]
     );
 
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Parameter "from" in "query" is used multiple times',
-          path: ['apiSpecifications', 'paths', '/convert', 'get', 'parameters', 0],
-        },
-        {
-          code: 'custom',
-          message: 'Parameter "from" in "query" is used multiple times',
-          path: ['apiSpecifications', 'paths', '/convert', 'get', 'parameters', 4],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Parameter "from" in "query" is used multiple times',
+        path: ['apiSpecifications', 'paths', '/convert', 'get', 'parameters', 0],
+      },
+      {
+        code: 'custom',
+        message: 'Parameter "from" in "query" is used multiple times',
+        path: ['apiSpecifications', 'paths', '/convert', 'get', 'parameters', 4],
+      },
+    ]);
   });
 });
 
 test('validates path name', () => {
-  expect(() => pathNameSchema.parse('my-path')).toThrow(
-    new ZodError([
-      {
-        validation: 'regex',
-        code: 'invalid_string',
-        message: 'Invalid',
-        path: [],
-      },
-    ])
-  );
+  expect(pathNameSchema.safeParse('my-path').error?.issues).toStrictEqual([
+    {
+      code: 'invalid_format',
+      format: 'regex',
+      message: 'Invalid string: must match pattern /^\\/\\S*$/',
+      origin: 'string',
+      path: [],
+      pattern: '/^\\/\\S*$/',
+    },
+  ]);
 
-  expect(() => pathNameSchema.parse('/my path')).toThrow(
-    new ZodError([
-      {
-        validation: 'regex',
-        code: 'invalid_string',
-        message: 'Invalid',
-        path: [],
-      },
-    ])
-  );
+  expect(pathNameSchema.safeParse('/my path').error?.issues).toStrictEqual([
+    {
+      code: 'invalid_format',
+      format: 'regex',
+      message: 'Invalid string: must match pattern /^\\/\\S*$/',
+      origin: 'string',
+      path: [],
+      pattern: '/^\\/\\S*$/',
+    },
+  ]);
 
   expect(() => pathNameSchema.parse('/my-path')).not.toThrow();
 
@@ -432,42 +401,34 @@ test('validates path name', () => {
 });
 
 test('validates semantic versioning', () => {
-  expect(() => semverSchema.parse('1.0')).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: 'Expected semantic versioning "x.y.z"',
-        path: [],
-      },
-    ])
-  );
-  expect(() => semverSchema.parse('0.x.y')).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: 'Expected semantic versioning "x.y.z"',
-        path: [],
-      },
-    ])
-  );
-  expect(() => semverSchema.parse('^0.1.1')).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: 'Expected semantic versioning "x.y.z"',
-        path: [],
-      },
-    ])
-  );
-  expect(() => semverSchema.parse('0.1.1.2')).toThrow(
-    new ZodError([
-      {
-        code: 'custom',
-        message: 'Expected semantic versioning "x.y.z"',
-        path: [],
-      },
-    ])
-  );
+  expect(semverSchema.safeParse('1.0').error?.issues).toStrictEqual([
+    {
+      code: 'custom',
+      message: 'Expected semantic versioning "x.y.z"',
+      path: [],
+    },
+  ]);
+  expect(semverSchema.safeParse('0.x.y').error?.issues).toStrictEqual([
+    {
+      code: 'custom',
+      message: 'Expected semantic versioning "x.y.z"',
+      path: [],
+    },
+  ]);
+  expect(semverSchema.safeParse('^0.1.1').error?.issues).toStrictEqual([
+    {
+      code: 'custom',
+      message: 'Expected semantic versioning "x.y.z"',
+      path: [],
+    },
+  ]);
+  expect(semverSchema.safeParse('0.1.1.2').error?.issues).toStrictEqual([
+    {
+      code: 'custom',
+      message: 'Expected semantic versioning "x.y.z"',
+      path: [],
+    },
+  ]);
 
   expect(() => semverSchema.parse('1.0.0')).not.toThrow();
   expect(() => semverSchema.parse('00.01.02')).not.toThrow();
@@ -493,62 +454,54 @@ describe('oisFormat version', () => {
   });
 
   it('disallows different packageVersion minor', () => {
-    expect(() => packageVersionCompatibleSemverSchema.parse(differentMinor)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
-          path: [],
-        },
-      ])
-    );
+    expect(packageVersionCompatibleSemverSchema.safeParse(differentMinor).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
+        path: [],
+      },
+    ]);
   });
 
   it('disallows different packageVersion major', () => {
-    expect(() => packageVersionCompatibleSemverSchema.parse(differentMajor)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
-          path: [],
-        },
-      ])
-    );
+    expect(packageVersionCompatibleSemverSchema.safeParse(differentMajor).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
+        path: [],
+      },
+    ]);
   });
 
   it('validates oisFormat field within oisSchema', () => {
     const invalidOis = loadOisFixture();
     invalidOis.oisFormat = '0.0.0';
 
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
-          path: ['oisFormat'],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: `oisFormat major.minor version must match major.minor version of "${packageVersion}"`,
+        path: ['oisFormat'],
+      },
+    ]);
   });
 });
 
 describe('reservedParameter validation', () => {
   it('validates reserved parameters', () => {
-    expect(() =>
-      reservedParameterSchema.parse({
+    expect(
+      reservedParameterSchema.safeParse({
         name: '_times',
         default: '123',
         fixed: '123',
-      })
-    ).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Reserved parameter must use at most one of "default" and "fixed" properties',
-          path: [],
-        },
-      ])
-    );
+      }).error?.issues
+    ).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Reserved parameter must use at most one of "default" and "fixed" properties',
+        path: [],
+      },
+    ]);
 
     // Empty parameter is allowed (the user is expected to pass it or it won't be used)
     expect(() =>
@@ -559,15 +512,15 @@ describe('reservedParameter validation', () => {
   });
 
   it('disallows reserved parameters without { "name": "_type" }', () => {
-    expect(() => reservedParametersSchema.parse([{ name: '_path', default: 'data.0.price' }])).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Reserved parameters must contain object with { "name": "_type" }',
-          path: [],
-        },
-      ])
-    );
+    expect(
+      reservedParametersSchema.safeParse([{ name: '_path', default: 'data.0.price' }]).error?.issues
+    ).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Reserved parameters must contain object with { "name": "_type" }',
+        path: [],
+      },
+    ]);
   });
 
   it('allows reserved parameters with only { "name": "_type" }', () => {
@@ -589,15 +542,13 @@ describe('reservedParameter validation', () => {
       );
 
       [invalidNotInt, invalidNegativeInt].forEach((obj) =>
-        expect(() => reservedParameterSchema.parse(obj)).toThrow(
-          new ZodError([
-            {
-              code: 'custom',
-              message: `Reserved parameter ${reservedParam} must be a non-negative integer if present`,
-              path: [],
-            },
-          ])
-        )
+        expect(reservedParameterSchema.safeParse(obj).error?.issues).toStrictEqual([
+          {
+            code: 'custom',
+            message: `Reserved parameter ${reservedParam} must be a non-negative integer if present`,
+            path: [],
+          },
+        ])
       );
     });
   });
@@ -610,15 +561,13 @@ describe('skip API call validation', () => {
     invalidOis.endpoints[0].fixedOperationParameters = [];
     invalidOis.endpoints[0].preProcessingSpecifications = undefined;
     invalidOis.endpoints[0].postProcessingSpecifications = undefined;
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
-          path: ['endpoints', 0],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+        path: ['endpoints', 0],
+      },
+    ]);
   });
 
   it(`fails if both "endpoint[n].preProcessingSpecifications" and "endpoint[n].postProcessingSpecifications" are empty array when "endpoint[n].operation" is undefined and "endpoint[n].fixedOperationParameters" is empty array.`, () => {
@@ -627,15 +576,13 @@ describe('skip API call validation', () => {
     invalidOis.endpoints[0].fixedOperationParameters = [];
     invalidOis.endpoints[0].preProcessingSpecifications = [];
     invalidOis.endpoints[0].postProcessingSpecifications = [];
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
-          path: ['endpoints', 0],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
+        path: ['endpoints', 0],
+      },
+    ]);
   });
 
   it(`allow "endpoint[n].operation" to be undefined and "endpoint[n].fixedOperationParameters" to be empty array when "endpoint[n].preProcessingSpecifications" is defined for skipping API call.`, () => {
@@ -701,15 +648,13 @@ describe('skip API call validation', () => {
         value: 'USD',
       },
     ];
-    expect(() => oisSchema.parse(invalidOis)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
-          path: ['endpoints', 0],
-        },
-      ])
-    );
+    expect(oisSchema.safeParse(invalidOis).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
+        path: ['endpoints', 0],
+      },
+    ]);
   });
 
   it('allows skipping API call with pre-processing v2', () => {
@@ -811,24 +756,20 @@ describe('processing specification', () => {
       value: '(payload) => payload;',
     };
 
-    expect(() => endpointSchema.parse(endpoint1)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Only one of "preProcessingSpecificationV2" and "preProcessingSpecifications" can be defined',
-          path: [],
-        },
-      ])
-    );
+    expect(endpointSchema.safeParse(endpoint1).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Only one of "preProcessingSpecificationV2" and "preProcessingSpecifications" can be defined',
+        path: [],
+      },
+    ]);
 
-    expect(() => endpointSchema.parse(endpoint2)).toThrow(
-      new ZodError([
-        {
-          code: 'custom',
-          message: 'Only one of "postProcessingSpecificationV2" and "postProcessingSpecifications" can be defined',
-          path: [],
-        },
-      ])
-    );
+    expect(endpointSchema.safeParse(endpoint2).error?.issues).toStrictEqual([
+      {
+        code: 'custom',
+        message: 'Only one of "postProcessingSpecificationV2" and "postProcessingSpecifications" can be defined',
+        path: [],
+      },
+    ]);
   });
 });
