@@ -1,5 +1,5 @@
 import { find, forEach, groupBy, trimEnd, trimStart } from 'lodash';
-import { type SuperRefinement, z } from 'zod';
+import { z } from 'zod';
 
 import { version as packageVersion } from '../package.json';
 
@@ -19,10 +19,15 @@ export const parameterTargetSchema = z.union([
   z.literal('processing'),
 ]);
 
-const nonReservedParameterNameSchema = z.string().refine(
-  (val) => reservedParameterNameSchema.safeParse(val).success === false,
-  (val) => ({ message: `"${val}" cannot be used because it is a name of a reserved parameter` })
-);
+const nonReservedParameterNameSchema = z.string().check((ctx) => {
+  if (reservedParameterNameSchema.safeParse(ctx.value).success) {
+    ctx.issues.push({
+      code: 'custom',
+      message: `"${ctx.value}" cannot be used because it is a name of a reserved parameter`,
+      input: ctx.value,
+    });
+  }
+});
 export const operationParameterSchema = z
   .object({
     in: parameterTargetSchema,
@@ -93,7 +98,8 @@ export const reservedParameterSchema = z
 
     return !isFixedValueDefined || !isDefaultValueDefined;
   }, 'Reserved parameter must use at most one of "default" and "fixed" properties')
-  .superRefine((param, ctx) => {
+  .check((ctx) => {
+    const param = ctx.value;
     // Default or fixed, or neither, may be present as validated by refine above
     const val = param.default ?? param.fixed;
     const { name } = param;
@@ -104,16 +110,17 @@ export const reservedParameterSchema = z
       val &&
       !nonNegativeIntSchema.safeParse(Number.parseInt(val, 10)).success
     ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: `Reserved parameter ${name} must be a non-negative integer if present`,
+        input: name,
       });
     }
   });
 
 export const serverSchema = z
   .object({
-    url: z.string().url(),
+    url: z.url(),
   })
   .strict();
 
@@ -174,9 +181,10 @@ export const operationSchema = z
 
 export const httpStatusCodes = z.union([z.literal('get'), z.literal('post')]);
 
-export const pathSchema = z.record(httpStatusCodes, operationSchema);
+export const pathSchema = z.partialRecord(httpStatusCodes, operationSchema);
 
-const ensurePathParametersExist: SuperRefinement<Record<string, SchemaType<typeof pathSchema>>> = (paths, ctx) => {
+const ensurePathParametersExist: z.core.CheckFn<Record<string, SchemaType<typeof pathSchema>>> = (ctx) => {
+  const paths = ctx.value;
   forEach(paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
       const { parameters } = paramData!;
@@ -189,10 +197,11 @@ const ensurePathParametersExist: SuperRefinement<Record<string, SchemaType<typeo
       matches.forEach((match) => {
         const parameter = parameters.find((p) => p.in === 'path' && p.name === match);
         if (!parameter) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+          ctx.issues.push({
+            code: 'custom',
             message: `Path parameter "${match}" is not found in "parameters"`,
             path: [rawPath, httpMethod, 'parameters'],
+            input: parameters,
           });
         }
       });
@@ -200,10 +209,11 @@ const ensurePathParametersExist: SuperRefinement<Record<string, SchemaType<typeo
       // Check that all parameters are used
       parameters.forEach((p, index) => {
         if (p.in === 'path' && !matches.includes(p.name)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+          ctx.issues.push({
+            code: 'custom',
             message: `Parameter "${p.name}" is not found in the URL path`,
             path: [rawPath, httpMethod, 'parameters', index],
+            input: parameters,
           });
         }
       });
@@ -211,10 +221,8 @@ const ensurePathParametersExist: SuperRefinement<Record<string, SchemaType<typeo
   });
 };
 
-const ensureUniqueApiSpecificationParameters: SuperRefinement<Record<string, SchemaType<typeof pathSchema>>> = (
-  paths,
-  ctx
-) => {
+const ensureUniqueApiSpecificationParameters: z.core.CheckFn<Record<string, SchemaType<typeof pathSchema>>> = (ctx) => {
+  const paths = ctx.value;
   forEach(paths, (pathData, rawPath) => {
     forEach(pathData, (paramData, httpMethod) => {
       const { parameters } = paramData!;
@@ -227,10 +235,11 @@ const ensureUniqueApiSpecificationParameters: SuperRefinement<Record<string, Sch
         if (!duplicates.has(parameter)) return;
 
         const { in: location, name } = parameter;
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        ctx.issues.push({
+          code: 'custom',
           message: `Parameter "${name}" in "${location}" is used multiple times`,
           path: [rawPath, httpMethod, 'parameters', index],
+          input: parameters,
         });
       });
     });
@@ -239,8 +248,8 @@ const ensureUniqueApiSpecificationParameters: SuperRefinement<Record<string, Sch
 
 export const pathsSchema = z
   .record(pathNameSchema, pathSchema)
-  .superRefine(ensurePathParametersExist)
-  .superRefine(ensureUniqueApiSpecificationParameters);
+  .check(ensurePathParametersExist)
+  .check(ensureUniqueApiSpecificationParameters);
 
 export const apiSpecificationSchema = z
   .object({
@@ -250,16 +259,18 @@ export const apiSpecificationSchema = z
     security: z.record(z.string(), z.tuple([])),
   })
   .strict()
-  .superRefine((apiSpecifications, ctx) => {
+  .check((ctx) => {
+    const apiSpecifications = ctx.value;
     Object.keys(apiSpecifications.security).forEach((enabledSecuritySchemeName, index) => {
       // Verify that ois.apiSpecifications.security.<securitySchemeName> is
       // referencing a valid ois.apiSpecifications.components.<securitySchemeName> object
       const enabledSecurityScheme = apiSpecifications.components.securitySchemes[enabledSecuritySchemeName];
       if (!enabledSecurityScheme) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        ctx.issues.push({
+          code: 'custom',
           message: `Security scheme "${enabledSecuritySchemeName}" is not defined in "components.securitySchemes"`,
           path: ['security', index],
+          input: apiSpecifications,
         });
       }
     });
@@ -281,33 +292,37 @@ export const processingSpecificationSchemaV2 = z
   })
   .strict();
 
-const ensureUniqueEndpointParameterNames: SuperRefinement<EndpointParameter[]> = (parameters, ctx) => {
+const ensureUniqueEndpointParameterNames: z.core.CheckFn<EndpointParameter[]> = (ctx) => {
+  const parameters = ctx.value;
   const groups = Object.values(groupBy(parameters, 'name'));
   const duplicates = new Set(groups.filter((group) => group.length > 1).flatMap((group) => group.map((p) => p.name)));
 
   parameters.forEach((parameter, index) => {
     const { name } = parameter;
     if (duplicates.has(name)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: `Parameter names must be unique, but parameter "${name}" is used multiple times`,
         path: [index],
+        input: parameters,
       });
     }
   });
 };
 
-const endpointParametersSchema = z.array(endpointParameterSchema).superRefine(ensureUniqueEndpointParameterNames);
+const endpointParametersSchema = z.array(endpointParameterSchema).check(ensureUniqueEndpointParameterNames);
 
-export const reservedParametersSchema = z.array(reservedParameterSchema).superRefine((params, ctx) => {
+export const reservedParametersSchema = z.array(reservedParameterSchema).check((ctx) => {
+  const params = ctx.value;
   const anyContainType = params.some((param) => {
     return param.name === '_type';
   });
 
   if (!anyContainType) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+    ctx.issues.push({
+      code: 'custom',
       message: 'Reserved parameters must contain object with { "name": "_type" }',
+      input: params,
     });
   }
 });
@@ -341,7 +356,8 @@ export const endpointSchema = z
     summary: z.string().optional(),
   })
   .strict()
-  .superRefine((endpoint, ctx) => {
+  .check((ctx) => {
+    const endpoint = ctx.value;
     const {
       preProcessingSpecificationV2,
       preProcessingSpecifications,
@@ -350,24 +366,26 @@ export const endpointSchema = z
     } = endpoint;
 
     if (preProcessingSpecificationV2 && preProcessingSpecifications) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: 'Only one of "preProcessingSpecificationV2" and "preProcessingSpecifications" can be defined',
+        input: endpoint,
       });
     }
 
     if (postProcessingSpecificationV2 && postProcessingSpecifications) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: 'Only one of "postProcessingSpecificationV2" and "postProcessingSpecifications" can be defined',
+        input: endpoint,
       });
     }
   });
 
-const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
+const ensureSingleParameterUsagePerEndpoint: z.core.CheckFn<{
   endpoints: Endpoint[];
-}> = (ois, ctx) => {
-  ois.endpoints.forEach((endpoint, oisIndex) => {
+}> = (ctx) => {
+  ctx.value.endpoints.forEach((endpoint, oisIndex) => {
     const params = endpoint.parameters.map((p) => p.operationParameter);
     const fixedParams = endpoint.fixedOperationParameters.map((p) => p.operationParameter);
 
@@ -377,10 +395,11 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
         if (!param) return;
         const count = paramsToCheck.filter((p) => p && p.in === param.in && p.name === param.name).length;
         if (count > 1) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+          ctx.issues.push({
+            code: 'custom',
             message: `Parameter "${param.name}" in "${param.in}" is used multiple times`,
             path: ['endpoints', oisIndex, section, paramIndex],
+            input: endpoint,
           });
         }
       });
@@ -394,27 +413,30 @@ const ensureSingleParameterUsagePerEndpoint: SuperRefinement<{
       if (!param) return;
       const fixedParam = fixedParams.find((p) => p.in === param.in && p.name === param.name);
       if (fixedParam) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Parameter "${param.name}" in "${param.in}" is used in both "parameters" and "fixedOperationParameters"`,
-          path: ['endpoints', oisIndex, 'parameters', paramIndex],
-        });
-
-        // Add also an issue for the fixed parameter. This makes it easier for the user to find the offending parameter
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Parameter "${param.name}" in "${param.in}" is used in both "parameters" and "fixedOperationParameters"`,
-          path: ['endpoints', oisIndex, 'fixedOperationParameters', fixedParams.indexOf(fixedParam)],
-        });
+        ctx.issues.push(
+          {
+            code: 'custom',
+            message: `Parameter "${param.name}" in "${param.in}" is used in both "parameters" and "fixedOperationParameters"`,
+            path: ['endpoints', oisIndex, 'parameters', paramIndex],
+            input: endpoint,
+          },
+          // Add also an issue for the fixed parameter. This makes it easier for the user to find the offending parameter
+          {
+            code: 'custom',
+            message: `Parameter "${param.name}" in "${param.in}" is used in both "parameters" and "fixedOperationParameters"`,
+            path: ['endpoints', oisIndex, 'fixedOperationParameters', fixedParams.indexOf(fixedParam)],
+            input: endpoint,
+          }
+        );
       }
     });
   });
 };
 
-const ensureApiCallSkipRequirements: SuperRefinement<{
+const ensureApiCallSkipRequirements: z.core.CheckFn<{
   endpoints: Endpoint[];
-}> = (ois, ctx) => {
-  const { endpoints } = ois;
+}> = (ctx) => {
+  const { endpoints } = ctx.value;
   forEach(endpoints, (endpoint) => {
     if (
       !endpoint.operation &&
@@ -424,28 +446,30 @@ const ensureApiCallSkipRequirements: SuperRefinement<{
       !endpoint.preProcessingSpecificationV2 &&
       !endpoint.postProcessingSpecificationV2
     ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: `At least one processing schema must be defined when "operation" is not specified and "fixedOperationParameters" is empty array.`,
         path: ['endpoints', endpoints.indexOf(endpoint)],
+        input: endpoint,
       });
     }
 
     if (!endpoint.operation && endpoint.fixedOperationParameters.length > 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: `"fixedOperationParameters" must be empty array when "operation" is not specified.`,
         path: ['endpoints', endpoints.indexOf(endpoint)],
+        input: endpoint,
       });
     }
   });
 };
 
-const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
+const ensureEndpointAndApiSpecificationParamsMatch: z.core.CheckFn<{
   endpoints: Endpoint[];
   apiSpecifications: ApiSpecification;
-}> = (ois, ctx) => {
-  const { apiSpecifications, endpoints } = ois;
+}> = (ctx) => {
+  const { apiSpecifications, endpoints } = ctx.value;
 
   // Ensure every "apiSpecification.paths" parameter is defined in "endpoints"
   forEach(apiSpecifications.paths, (pathData, rawPath) => {
@@ -464,10 +488,11 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
               operationParameter && operationParameter.in === apiParam.in && operationParameter.name === apiParam.name
           );
           if (!endpointParam) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+            ctx.issues.push({
+              code: 'custom',
               message: `Parameter "${apiParam.name}" not found in "fixedOperationParameters" or "parameters"`,
               path: ['endpoints', endpoints.indexOf(endpoint)],
+              input: endpoint,
             });
           }
         });
@@ -486,10 +511,11 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
       return !!find(pathData, (_, httpMethod) => operation.method === httpMethod);
     });
     if (!apiSpec) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: `No matching API specification found in "apiSpecifications" section`,
         path: ['endpoints', endpointIndex],
+        input: endpoint,
       });
       return;
     }
@@ -503,10 +529,11 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
       );
 
       if (!apiParam) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        ctx.issues.push({
+          code: 'custom',
           message: `No matching API specification parameter found in "apiSpecifications" section`,
           path: ['endpoints', endpointIndex, 'parameters', endpointParamIndex],
+          input: endpoint,
         });
       }
     });
@@ -519,10 +546,11 @@ const ensureEndpointAndApiSpecificationParamsMatch: SuperRefinement<{
       );
 
       if (!apiParam) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        ctx.issues.push({
+          code: 'custom',
           message: `No matching API specification parameter found in "apiSpecifications" section`,
           path: ['endpoints', endpointIndex, 'fixedOperationParameters', endpointParamIndex],
+          input: endpoint,
         });
       }
     });
@@ -552,9 +580,9 @@ export const oisSchema = z
     endpoints: z.array(endpointSchema),
   })
   .strict()
-  .superRefine(ensureSingleParameterUsagePerEndpoint)
-  .superRefine(ensureEndpointAndApiSpecificationParamsMatch)
-  .superRefine(ensureApiCallSkipRequirements);
+  .check(ensureSingleParameterUsagePerEndpoint)
+  .check(ensureEndpointAndApiSpecificationParamsMatch)
+  .check(ensureApiCallSkipRequirements);
 
 export const RESERVED_PARAMETERS = reservedParameterNameSchema.options.map((option) => option.value);
 export type Paths = SchemaType<typeof pathsSchema>;
