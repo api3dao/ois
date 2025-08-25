@@ -34,10 +34,10 @@
   },
   "devDependencies": {
     "@api3/eslint-plugin-commons": "^3.0.0",
-    "@changesets/cli": "^2.29.5",
+    "@changesets/cli": "^2.29.6",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^20.19.10",
+    "@types/node": "^20.19.11",
     "husky": "^9.1.7",
     "jest": "^30.0.5",
     "prettier": "^3.6.2",
