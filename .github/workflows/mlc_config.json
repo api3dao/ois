@@ -1,4 +1,9 @@
 {
+  "ignorePatterns": [
+    {
+      "pattern": "^https://www.npmjs.com/package/@api3/ois"
+    }
+  ],
   "replacementPatterns": [],
   "retryOn429": true,
   "retryCount": 3,
