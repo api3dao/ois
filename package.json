@@ -12,7 +12,10 @@
   "files": [
     "dist"
   ],
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.26.2",
+  "engines": {
+    "pnpm": "^10.26.2"
+  },
   "scripts": {
     "build": "pnpm run clean && pnpm run compile",
     "changeset": "changeset",
