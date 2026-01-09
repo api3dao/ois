@@ -12,7 +12,7 @@
   "files": [
     "dist"
   ],
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.26.2",
   "scripts": {
     "build": "pnpm run clean && pnpm run compile",
     "changeset": "changeset",
@@ -38,6 +38,7 @@
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
     "@types/node": "^20.19.24",
+    "eslint": "^8.57.1",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "prettier": "^3.6.2",
