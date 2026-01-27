@@ -36,7 +36,7 @@
     "@api3/eslint-plugin-commons": "^3.0.0",
     "@changesets/cli": "^2.29.7",
     "@types/jest": "^30.0.0",
-    "@types/lodash": "^4.17.20",
+    "@types/lodash": "^4.17.23",
     "@types/node": "^20.19.24",
     "eslint": "^8.57.1",
     "husky": "^9.1.7",
@@ -48,7 +48,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "zod": "^4.0.5"
   }
 }
