@@ -529,6 +529,7 @@ describe('reservedParameter validation', () => {
 
   // eslint-disable-next-line jest/require-hook
   ['_minConfirmations', '_gasPrice'].forEach((reservedParam) => {
+    // eslint-disable-next-line jest/prefer-ending-with-an-expect
     it(`allows missing value or non-negative integer strings for ${reservedParam}`, () => {
       const validIntStrDefault = { name: reservedParam, default: '3' };
       const validIntStrFixed = { name: reservedParam, fixed: '3' };
