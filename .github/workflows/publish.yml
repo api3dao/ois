@@ -39,7 +39,7 @@ jobs:
           echo "NEW_VERSION=$(pnpm changeset status --output=release.json > /dev/null && jq -r '.releases[0].newVersion' release.json && rm release.json)" >> "$GITHUB_ENV"
       - name: Create PR or publish to npm
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@v2.1.1
         with:
           version: pnpm changeset:version
           publish: pnpm changeset publish
