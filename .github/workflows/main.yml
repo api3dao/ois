@@ -10,14 +10,17 @@ on:
 
 jobs:
   documentation:
+    name: Check links
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Clone @api3/ois
-        uses: actions/checkout@master
-      - name: Check hyperlinks
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        uses: actions/checkout@v7
+      - name: Run lychee
+        uses: lycheeverse/lychee-action@v2
         with:
-          config-file: .github/workflows/mlc_config.json
+          args: --no-progress './**/*.md'
 
   lint-test:
     runs-on: ubuntu-latest

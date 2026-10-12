@@ -1,0 +1,16 @@
+# 429 = rate-limited (don't fail a PR just because we got throttled).
+accept = ["200..=206", "429"]
+
+# NOTE: everything listed here is NEVER checked - a dead link behind one of these
+# patterns will NOT be detected. Only add a pattern for a target that is reachable
+# for a person but not for CI.
+exclude = [
+  # The default GITHUB_TOKEN cannot see the organization's private repositories.
+  '^https?://github\.com/api3dao/',
+  '^https?://github\.com/orgs/api3dao/',
+  # Bot wall: answers 403 to anything that is not a real browser.
+  '^https?://www\.npmjs\.com/package/@api3/ois',
+  # Placeholders.
+  '^https?://localhost',
+  '^https?://example\.com',
+]
