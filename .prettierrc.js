@@ -15,7 +15,7 @@ module.exports = {
       files: '*.md',
       options: {
         parser: 'markdown',
-        proseWrap: 'always',
+        proseWrap: 'never',
       },
     },
   ],
